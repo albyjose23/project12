@@ -45,22 +45,22 @@
         <p class="subtle-text">Sign in to manage papers and questions.</p>
       </div>
 
-      <form action="<%= pages_dashboard_path %>" method="get" class="stack">
+      <%= form_with url: pages_login_path, scope: :session, class: "stack" do |form| %>
         <div class="field">
           <label for="login_email">Email Address</label>
-          <input id="login_email" type="email" placeholder="faculty@college.edu" required>
+          <%= form.email_field :email, id: "login_email", placeholder: "faculty@college.edu", required: true %>
         </div>
 
         <div class="field">
           <label for="login_password">Password</label>
-          <input id="login_password" type="password" placeholder="Enter your password" required>
+          <%= form.password_field :password, id: "login_password", placeholder: "Enter your password", required: true %>
         </div>
 
         <div class="btn-row">
-          <button type="submit" class="btn">Sign In</button>
+          <%= form.submit "Sign In", class: "btn" %>
           <a href="<%= pages_register_path %>" class="btn-ghost">Create Account</a>
         </div>
-      </form>
+      <% end %>
 
       <p class="auth-switch">
         New faculty member?

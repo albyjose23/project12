@@ -1,6 +1,7 @@
 <% content_for :title, "Question Bank | QPaper" %>
 
 <section class="app-shell">
+  <%# Sidebar navigation %>
   <%= render "sidebar", active: :question_bank %>
 
   <main class="app-main">
@@ -12,90 +13,134 @@
       action_path: pages_manage_subjects_path %>
 
     <div class="app-content content-grid">
+      
+      <%# --- LEFT COLUMN: ADD NEW QUESTION FORM --- %>
       <article class="panel">
         <div class="panel-header">
           <div>
             <h3>Add New Question</h3>
-            <p class="subtle-text">Maintain quality and difficulty balance.</p>
+            <p class="subtle-text">Enter details manually or use CSV import.</p>
           </div>
           <span class="badge">Input</span>
         </div>
 
-        <div class="field-grid">
-          <div class="field">
-            <label for="qb_subject">Subject</label>
-            <select id="qb_subject">
-              <option>Data Structures (CS101)</option>
-              <option>Operating Systems (CS102)</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="qb_unit">Unit</label>
-            <select id="qb_unit">
-              <option>Unit 1</option>
-              <option>Unit 2</option>
-              <option>Unit 3</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="qb_difficulty">Difficulty</label>
-            <select id="qb_difficulty">
-              <option>Easy</option>
-              <option>Medium</option>
-              <option>Hard</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="qb_marks">Marks</label>
-            <input id="qb_marks" type="number" value="10">
-          </div>
-        </div>
+        <%= form_with url: add_question_path, method: :post, local: true do |f| %>
+          <div class="field-grid">
+            <div class="field">
+              <label for="qb_subject">Subject</label>
+              <select id="qb_subject" name="subject_id" class="ui-select" required>
+                <option value="">Select Subject</option>
+                <% Subject.all.order(name: :asc).each do |s| %>
+                  <option value="<%= s.id %>"><%= s.name %> (<%= s.code %>)</option>
+                <% end %>
+              </select>
+            </div>
 
-        <div class="field">
-          <label for="qb_question">Question Text</label>
-          <textarea id="qb_question" placeholder="Type the question here..."></textarea>
-        </div>
+            <div class="field">
+              <label for="qb_unit">Unit</label>
+              <select id="qb_unit" name="unit" class="ui-select">
+                <option value="1">Unit 1</option>
+                <option value="2">Unit 2</option>
+                <option value="3">Unit 3</option>
+                <option value="4">Unit 4</option>
+                <option value="5">Unit 5</option>
+              </select>
+            </div>
 
-        <div class="btn-row">
-          <button type="button" class="btn" data-toast-trigger="question-toast">Save Question</button>
-          <button type="button" class="btn-ghost">Preview Format</button>
-        </div>
+            <div class="field">
+              <label for="qb_difficulty">Difficulty</label>
+              <select id="qb_difficulty" name="difficulty" class="ui-select">
+                <option value="Easy">Easy</option>
+                <option value="Medium">Medium</option>
+                <option value="Hard">Hard</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="qb_marks">Marks</label>
+              <input id="qb_marks" name="marks" type="number" value="10" class="ui-input">
+            </div>
+          </div>
+
+          <div class="field mt-4">
+            <label for="qb_question">Question Text</label>
+            <textarea id="qb_question" name="content" placeholder="Type the question content here..." class="ui-textarea" required rows="5"></textarea>
+          </div>
+
+          <div class="btn-row mt-6">
+            <button type="submit" class="btn">Save Question</button>
+            <%# Redirects to the CSV upload page we built %>
+            <%= link_to "Import CSV", import_questions_page_path, class: "btn-ghost" %>
+          </div>
+        <% end %>
       </article>
 
+      <%# --- RIGHT COLUMN: RECENTLY ADDED QUESTIONS --- %>
       <article class="panel">
         <div class="panel-header">
           <div>
             <h3>Recent Entries</h3>
-            <p class="subtle-text">Recent stored questions.</p>
+            <p class="subtle-text">Latest additions to your bank.</p>
           </div>
         </div>
 
         <div class="quick-list">
-          <div class="quick-item">
-            <div>
-              <div class="strong">CS101 | Unit 1</div>
-              <div class="muted">What is a Data Structure?</div>
+          <% if Question.any? %>
+            <%# Fetch the last 10 questions and show them newest first %>
+            <% Question.includes(:subject).order(created_at: :desc).limit(10).each do |q| %>
+              <div class="quick-item">
+                <div style="flex: 1;">
+                  <div class="strong">
+                    <%= q.subject.code %> 
+                    <span class="subtle-text" style="font-weight: normal; margin-left: 8px;">
+                      Unit <%= q.unit.presence || 'N/A' %>
+                    </span>
+                  </div>
+                  <div class="muted" title="<%= q.content %>">
+                    <%= truncate(q.content, length: 60) %>
+                  </div>
+                </div>
+                <div style="text-align: right;">
+                  <span class="badge" data-difficulty="<%= q.difficulty.downcase %>">
+                    <%= q.difficulty %>
+                  </span>
+                  <div class="subtle-text" style="font-size: 11px; margin-top: 4px;">
+                    <%= q.created_at.strftime("%b %d") %>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          <% else %>
+            <div class="p-8 text-center muted">
+              <p>No questions found in the database.</p>
+              <p style="font-size: 13px;">Start by adding one manually or importing a CSV.</p>
             </div>
-            <span class="badge">Easy</span>
-          </div>
-          <div class="quick-item">
-            <div>
-              <div class="strong">CS101 | Unit 3</div>
-              <div class="muted">Write an algorithm to reverse a doubly linked list.</div>
-            </div>
-            <span class="badge">Hard</span>
-          </div>
-          <div class="quick-item">
-            <div>
-              <div class="strong">CS102 | Unit 2</div>
-              <div class="muted">Explain process scheduling with an example.</div>
-            </div>
-            <span class="badge">Medium</span>
-          </div>
+          <% end %>
         </div>
       </article>
+
     </div>
   </main>
 </section>
 
-<div id="question-toast" class="toast">Question added to the bank.</div>
+<%# Toast Notification for feedback %>
+<% if flash[:notice] %>
+  <div id="question-toast" class="toast show"><%= flash[:notice] %></div>
+<% end %>
+
+<style>
+  /* Extra styling for the question list difficulty badges */
+  .badge[data-difficulty="easy"] { background: #dcfce7; color: #166534; }
+  .badge[data-difficulty="medium"] { background: #fef9c3; color: #854d0e; }
+  .badge[data-difficulty="hard"] { background: #fee2e2; color: #991b1b; }
+  
+  .quick-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  
+  .quick-item:last-child { border-bottom: none; }
+</style>

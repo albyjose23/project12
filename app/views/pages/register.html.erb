@@ -42,55 +42,44 @@
       </div>
     </div>
 
-    <form action="<%= pages_dashboard_path %>" method="get" class="stack">
+    <%= form_with model: @user || User.new, url: pages_register_path, class: "stack" do |form| %>
       <div class="field-grid">
         <div class="field">
           <label for="register_name">Full Name</label>
-          <input id="register_name" type="text" placeholder="Dr. Priya Sharma" required>
+          <%= form.text_field :name, id: "register_name", placeholder: "Dr. Priya Sharma", required: true %>
         </div>
         <div class="field">
           <label for="register_email">College Email</label>
-          <input id="register_email" type="email" placeholder="faculty@college.edu" required>
+          <%= form.email_field :email, id: "register_email", placeholder: "faculty@college.edu", required: true %>
         </div>
       </div>
 
       <div class="field-grid">
         <div class="field">
           <label for="register_department">Department</label>
-          <select id="register_department" required>
-            <option value="">Select department</option>
-            <option>BCA</option>
-            <option>B.Sc Computer Science</option>
-            <option>BBA</option>
-            <option>B.Com</option>
-          </select>
+          <%= form.select :department, [["Select department", ""], "BCA", "B.Sc Computer Science", "BBA", "B.Com"], {}, { id: "register_department", required: true } %>
         </div>
         <div class="field">
           <label for="register_role">Role</label>
-          <select id="register_role" required>
-            <option value="">Select role</option>
-            <option>Professor</option>
-            <option>Assistant Professor</option>
-            <option>Exam Cell Coordinator</option>
-          </select>
+          <%= form.select :role, [["Select role", ""], "Professor", "Assistant Professor", "Exam Cell Coordinator"], {}, { id: "register_role", required: true } %>
         </div>
       </div>
 
       <div class="field-grid">
         <div class="field">
           <label for="register_password">Password</label>
-          <input id="register_password" type="password" placeholder="Create a secure password" required>
+          <%= form.password_field :password, id: "register_password", placeholder: "Create a secure password", required: true %>
         </div>
         <div class="field">
           <label for="register_confirm">Confirm Password</label>
-          <input id="register_confirm" type="password" placeholder="Repeat password" required>
+          <%= form.password_field :password_confirmation, id: "register_confirm", placeholder: "Repeat password", required: true %>
         </div>
       </div>
 
       <div class="btn-row">
-        <button type="submit" class="btn">Create Account</button>
+        <%= form.submit "Create Account", class: "btn" %>
         <a href="<%= pages_login_path %>" class="btn-ghost">Back to Login</a>
       </div>
-    </form>
+    <% end %>
   </div>
 </section>

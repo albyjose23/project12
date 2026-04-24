@@ -638,6 +638,24 @@ tbody tr:hover {
   opacity: 1;
 }
 
+.flash-banner {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  z-index: 50;
+  transform: translateX(-50%);
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(18, 18, 20, 0.96);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.flash-banner.alert {
+  color: #f3c7c7;
+}
+
 .print-shell {
   padding: 2rem;
 }
@@ -780,5 +798,34 @@ tbody tr:hover {
     padding: 0;
     border: 0;
     box-shadow: none;
+  }
+}
+@media print {
+  /* Hide the UI elements */
+  .app-sidebar, .sidebar, .topbar, .btn, .btn-ghost, .badge, .toast, .panel-header {
+    display: none !important;
+  }
+
+  /* Reset layout for paper */
+  body, .app-shell, .app-main, .panel {
+    background: white !important;
+    color: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .app-content {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 10mm !important; /* Standard margin for A4 */
+  }
+
+  /* Make sure questions don't get cut in half across pages */
+  .quick-item, .question-row {
+    page-break-inside: avoid;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
   }
 }

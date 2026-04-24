@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_22_103900) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_24_131242) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -25,6 +25,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_22_103900) do
 
   create_table "papers", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.string "exam_type"
     t.bigint "subject_id", null: false
     t.string "title"
     t.datetime "updated_at", null: false
@@ -37,6 +38,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_22_103900) do
     t.string "difficulty"
     t.integer "marks"
     t.bigint "subject_id", null: false
+    t.string "unit"
     t.datetime "updated_at", null: false
     t.index ["subject_id"], name: "index_questions_on_subject_id"
   end
@@ -52,10 +54,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_22_103900) do
 
   create_table "users", force: :cascade do |t|
     t.datetime "created_at", null: false
-    t.string "email"
+    t.string "department"
+    t.string "email", null: false
     t.string "name"
-    t.string "password"
+    t.string "password_digest"
+    t.string "role"
     t.datetime "updated_at", null: false
+    t.index ["email"], name: "index_users_on_email", unique: true
   end
 
   add_foreign_key "paper_questions", "papers"
