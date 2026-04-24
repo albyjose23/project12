@@ -1,0 +1,96 @@
+<% content_for :title, "Register | QPaper" %>
+<% content_for :body_class, "auth-body" %>
+
+<section class="auth-shell">
+  <div class="hero-panel">
+    <div class="stack">
+      <div class="eyebrow">Faculty onboarding</div>
+      <h1 class="hero-title">Launch a polished paper workflow from day one.</h1>
+      <p class="hero-copy">Create a faculty account and start managing papers faster.</p>
+      <div class="quick-list">
+        <div class="quick-item">
+          <div>
+            <div class="strong">Department Setup</div>
+            <div class="muted">Map faculty to department and semester.</div>
+          </div>
+          <span class="badge">Step 1</span>
+        </div>
+        <div class="quick-item">
+          <div>
+            <div class="strong">Question Management</div>
+            <div class="muted">Organize questions by unit.</div>
+          </div>
+          <span class="badge">Step 2</span>
+        </div>
+        <div class="quick-item">
+          <div>
+            <div class="strong">Paper Publishing</div>
+            <div class="muted">Generate and print papers.</div>
+          </div>
+          <span class="badge">Step 3</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="auth-panel">
+    <div class="brand-lockup">
+      <div class="brand-mark">Q</div>
+      <div class="brand-copy">
+        <h1>QPaper Suite</h1>
+        <p>Create your account</p>
+      </div>
+    </div>
+
+    <form action="<%= pages_dashboard_path %>" method="get" class="stack">
+      <div class="field-grid">
+        <div class="field">
+          <label for="register_name">Full Name</label>
+          <input id="register_name" type="text" placeholder="Dr. Priya Sharma" required>
+        </div>
+        <div class="field">
+          <label for="register_email">College Email</label>
+          <input id="register_email" type="email" placeholder="faculty@college.edu" required>
+        </div>
+      </div>
+
+      <div class="field-grid">
+        <div class="field">
+          <label for="register_department">Department</label>
+          <select id="register_department" required>
+            <option value="">Select department</option>
+            <option>BCA</option>
+            <option>B.Sc Computer Science</option>
+            <option>BBA</option>
+            <option>B.Com</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="register_role">Role</label>
+          <select id="register_role" required>
+            <option value="">Select role</option>
+            <option>Professor</option>
+            <option>Assistant Professor</option>
+            <option>Exam Cell Coordinator</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field-grid">
+        <div class="field">
+          <label for="register_password">Password</label>
+          <input id="register_password" type="password" placeholder="Create a secure password" required>
+        </div>
+        <div class="field">
+          <label for="register_confirm">Confirm Password</label>
+          <input id="register_confirm" type="password" placeholder="Repeat password" required>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button type="submit" class="btn">Create Account</button>
+        <a href="<%= pages_login_path %>" class="btn-ghost">Back to Login</a>
+      </div>
+    </form>
+  </div>
+</section>

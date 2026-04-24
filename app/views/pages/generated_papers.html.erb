@@ -1,0 +1,55 @@
+<% content_for :title, "Generated Papers | QPaper" %>
+
+<section class="app-shell">
+  <%= render "sidebar", active: :generated_papers %>
+
+  <main class="app-main">
+    <%= render "topbar",
+      title: "Generated Papers",
+      subtitle: "Review recent output, reopen papers, and keep print-ready versions accessible.",
+      eyebrow: "History",
+      action_label: "Generate New Paper",
+      action_path: pages_generate_paper_path %>
+
+    <div class="app-content page-grid">
+      <article class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>Recent Paper Runs</h3>
+            <p class="subtle-text">A polished paper archive with fast access to previews.</p>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Exam Title</th>
+                <th>Subject</th>
+                <th>Status</th>
+                <th class="text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="muted">Apr 24, 2026</td>
+                <td class="strong">Mid-Term Examination 2026</td>
+                <td>Data Structures (CS101)</td>
+                <td><span class="badge">Published</span></td>
+                <td class="text-right"><%= link_to "Open", pages_view_paper_path, class: "table-action interactive" %></td>
+              </tr>
+              <tr>
+                <td class="muted">Apr 15, 2026</td>
+                <td class="strong">Unit Test 2</td>
+                <td>Operating Systems (CS102)</td>
+                <td><span class="badge">Draft</span></td>
+                <td class="text-right"><%= link_to "Open", pages_view_paper_path, class: "table-action interactive" %></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </div>
+  </main>
+</section>

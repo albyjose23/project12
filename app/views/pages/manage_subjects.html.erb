@@ -1,0 +1,105 @@
+<% content_for :title, "Manage Subjects | QPaper" %>
+
+<section class="app-shell">
+  <%= render "sidebar", active: :manage_subjects %>
+
+  <main class="app-main">
+    <%= render "topbar",
+      title: "Manage Subjects",
+      subtitle: "Add and organize subjects by semester.",
+      eyebrow: "Syllabus",
+      action_label: "Question Bank",
+      action_path: pages_question_bank_path %>
+
+    <div class="app-content page-grid">
+      <article class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>Add New Subject</h3>
+            <p class="subtle-text">Keep department and semester aligned.</p>
+          </div>
+          <span class="badge">Form</span>
+        </div>
+
+        <div class="field-grid">
+          <div class="field">
+            <label for="subject_department">Department</label>
+            <select id="subject_department">
+              <option>Select department</option>
+              <option>BCA</option>
+              <option>B.Sc Computer Science</option>
+              <option>BBA</option>
+              <option>B.Com</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="subject_semester">Semester</label>
+            <select id="subject_semester">
+              <option>Select semester</option>
+              <option>Semester 1</option>
+              <option>Semester 2</option>
+              <option>Semester 3</option>
+              <option>Semester 4</option>
+              <option>Semester 5</option>
+              <option>Semester 6</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="subject_name">Subject Name</label>
+            <input id="subject_name" type="text" placeholder="Data Structures">
+          </div>
+          <div class="field">
+            <label for="subject_code">Subject Code</label>
+            <input id="subject_code" type="text" placeholder="CS101">
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button type="button" class="btn" data-toast-trigger="subject-toast">Add Subject</button>
+          <button type="button" class="btn-ghost">Import Syllabus</button>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>Current Subjects</h3>
+            <p class="subtle-text">Current subject list.</p>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Department</th>
+                <th>Semester</th>
+                <th>Code</th>
+                <th>Subject</th>
+                <th class="text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="strong">BCA</td>
+                <td class="muted">Semester 1</td>
+                <td class="strong">CS101</td>
+                <td>Data Structures</td>
+                <td class="text-right"><button type="button" class="table-action">Edit</button></td>
+              </tr>
+              <tr>
+                <td class="strong">B.Sc CS</td>
+                <td class="muted">Semester 3</td>
+                <td class="strong">CS102</td>
+                <td>Operating Systems</td>
+                <td class="text-right"><button type="button" class="table-action">Archive</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </div>
+  </main>
+</section>
+
+<div id="subject-toast" class="toast">Subject saved successfully.</div>

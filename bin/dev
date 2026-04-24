@@ -1,0 +1,10 @@
+#!/usr/bin/env ruby.exe
+require "rbconfig"
+require "tmpdir"
+
+if Gem.win_platform?
+  ENV["PIDFILE"] ||= File.join(Dir.tmpdir, "qpaper_app-server.pid")
+end
+
+rails_bin = File.expand_path("rails", __dir__)
+exec RbConfig.ruby, rails_bin, "server", *ARGV

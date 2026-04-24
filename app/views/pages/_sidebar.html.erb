@@ -1,0 +1,49 @@
+<aside class="sidebar">
+  <div class="sidebar-card">
+    <div class="brand-lockup">
+      <div class="brand-mark">Q</div>
+      <div class="brand-copy">
+        <h2>QPaper Suite</h2>
+        <p>Paper workspace</p>
+      </div>
+    </div>
+
+    <div class="eyebrow">Academic console</div>
+
+    <nav class="nav-group">
+      <% nav_items = [
+        ["Dashboard", pages_dashboard_path, :dashboard],
+        ["Manage Subjects", pages_manage_subjects_path, :manage_subjects],
+        ["Question Bank", pages_question_bank_path, :question_bank],
+        ["Generate Paper", pages_generate_paper_path, :generate_paper],
+        ["Generated Papers", pages_generated_papers_path, :generated_papers]
+      ] %>
+
+      <% nav_items.each do |label, path, key| %>
+        <%= link_to path, class: ["nav-link", ("active" if active == key)] do %>
+          <span><%= label %></span>
+          <span class="nav-dot"></span>
+        <% end %>
+      <% end %>
+    </nav>
+
+    <div class="divider"></div>
+
+    <div class="quick-list">
+      <div class="quick-item">
+        <div>
+          <div class="strong">Secure Workspace</div>
+          <div class="muted">Monochrome UI</div>
+        </div>
+        <span class="badge">Live</span>
+      </div>
+      <div class="quick-item">
+        <div>
+          <div class="strong">Faculty Access</div>
+          <div class="muted">Registration ready</div>
+        </div>
+        <span class="badge">New</span>
+      </div>
+    </div>
+  </div>
+</aside>

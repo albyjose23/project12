@@ -1,0 +1,101 @@
+<% content_for :title, "Question Bank | QPaper" %>
+
+<section class="app-shell">
+  <%= render "sidebar", active: :question_bank %>
+
+  <main class="app-main">
+    <%= render "topbar",
+      title: "Question Bank",
+      subtitle: "Curate and review unit-wise questions.",
+      eyebrow: "Repository",
+      action_label: "Manage Subjects",
+      action_path: pages_manage_subjects_path %>
+
+    <div class="app-content content-grid">
+      <article class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>Add New Question</h3>
+            <p class="subtle-text">Maintain quality and difficulty balance.</p>
+          </div>
+          <span class="badge">Input</span>
+        </div>
+
+        <div class="field-grid">
+          <div class="field">
+            <label for="qb_subject">Subject</label>
+            <select id="qb_subject">
+              <option>Data Structures (CS101)</option>
+              <option>Operating Systems (CS102)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="qb_unit">Unit</label>
+            <select id="qb_unit">
+              <option>Unit 1</option>
+              <option>Unit 2</option>
+              <option>Unit 3</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="qb_difficulty">Difficulty</label>
+            <select id="qb_difficulty">
+              <option>Easy</option>
+              <option>Medium</option>
+              <option>Hard</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="qb_marks">Marks</label>
+            <input id="qb_marks" type="number" value="10">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="qb_question">Question Text</label>
+          <textarea id="qb_question" placeholder="Type the question here..."></textarea>
+        </div>
+
+        <div class="btn-row">
+          <button type="button" class="btn" data-toast-trigger="question-toast">Save Question</button>
+          <button type="button" class="btn-ghost">Preview Format</button>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>Recent Entries</h3>
+            <p class="subtle-text">Recent stored questions.</p>
+          </div>
+        </div>
+
+        <div class="quick-list">
+          <div class="quick-item">
+            <div>
+              <div class="strong">CS101 | Unit 1</div>
+              <div class="muted">What is a Data Structure?</div>
+            </div>
+            <span class="badge">Easy</span>
+          </div>
+          <div class="quick-item">
+            <div>
+              <div class="strong">CS101 | Unit 3</div>
+              <div class="muted">Write an algorithm to reverse a doubly linked list.</div>
+            </div>
+            <span class="badge">Hard</span>
+          </div>
+          <div class="quick-item">
+            <div>
+              <div class="strong">CS102 | Unit 2</div>
+              <div class="muted">Explain process scheduling with an example.</div>
+            </div>
+            <span class="badge">Medium</span>
+          </div>
+        </div>
+      </article>
+    </div>
+  </main>
+</section>
+
+<div id="question-toast" class="toast">Question added to the bank.</div>

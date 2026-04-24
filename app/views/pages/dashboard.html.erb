@@ -1,0 +1,87 @@
+<% content_for :title, "Dashboard | QPaper" %>
+
+<section class="app-shell">
+  <%= render "sidebar", active: :dashboard %>
+
+  <main class="app-main">
+    <%= render "topbar",
+      title: "Dashboard",
+      subtitle: "Track papers, subjects, and questions in one place.",
+      eyebrow: "Overview",
+      action_label: "Open Generator",
+      action_path: pages_generate_paper_path %>
+
+    <div class="app-content page-grid">
+      <div class="stats-grid">
+        <article class="stat-card">
+          <span class="eyebrow">Subjects</span>
+          <p class="kpi-value">12</p>
+          <p class="kpi-meta">Across core and elective groups.</p>
+        </article>
+
+        <article class="stat-card">
+          <span class="eyebrow">Questions</span>
+          <p class="kpi-value">450</p>
+          <p class="kpi-meta">Balanced across units and difficulty.</p>
+        </article>
+
+        <article class="stat-card">
+          <span class="eyebrow">Generated</span>
+          <p class="kpi-value">84</p>
+          <p class="kpi-meta">Ready for review and print.</p>
+        </article>
+      </div>
+
+      <div class="split-grid">
+        <article class="panel">
+          <div class="panel-headline">
+            <div>
+              <h3>Production Pulse</h3>
+              <p class="subtle-text">Current workflow status.</p>
+            </div>
+            <span class="badge">Live Sync</span>
+          </div>
+
+          <div class="quick-list">
+            <div class="quick-item">
+              <div>
+                <div class="strong">Syllabus mapped</div>
+                <div class="muted">8 subjects updated this week</div>
+              </div>
+              <span class="badge">67%</span>
+            </div>
+            <div class="quick-item">
+              <div>
+                <div class="strong">Question health</div>
+                <div class="muted">Unit 3 needs more hard questions</div>
+              </div>
+              <span class="badge">Review</span>
+            </div>
+            <div class="quick-item">
+              <div>
+                <div class="strong">Exam readiness</div>
+                <div class="muted">3 paper templates ready</div>
+              </div>
+              <span class="badge">Ready</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-headline">
+            <div>
+              <h3>Quick Actions</h3>
+              <p class="subtle-text">Main faculty actions.</p>
+            </div>
+          </div>
+
+          <div class="stack">
+            <%= link_to "Add a subject", pages_manage_subjects_path, class: "btn" %>
+            <%= link_to "Update question bank", pages_question_bank_path, class: "btn-ghost" %>
+            <%= link_to "Review generated papers", pages_generated_papers_path, class: "btn-ghost" %>
+          </div>
+        </article>
+      </div>
+    </div>
+  </main>
+</section>

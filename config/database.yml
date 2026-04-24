@@ -1,0 +1,54 @@
+# PostgreSQL. Versions 9.3 and up are supported.
+#
+# Install the pg driver:
+#   gem install pg
+# On Windows:
+#   gem install pg
+#       Choose the win32 build.
+#       Install PostgreSQL and put its /bin directory on your path.
+
+default: &default
+  adapter: postgresql
+  encoding: unicode
+  # For details on connection pooling, see Rails configuration guide
+  # https://guides.rubyonrails.org/configuring.html#database-pooling
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  timeout: 5000
+
+development:
+  <<: *default
+  database: qpaper_app_development
+  username: postgres
+  password: "alby12@#"
+  host: 127.0.0.1
+  port: 5432
+
+test:
+  <<: *default
+  database: qpaper_app_test
+  username: postgres
+  password: "alby12@#"
+  host: 127.0.0.1
+  port: 5432
+
+# Production should still use environment variables for security
+production:
+  primary: &primary_production
+    <<: *default
+    database: <%= ENV.fetch("QPAPER_APP_PRODUCTION_DATABASE", "qpaper_app_production") %>
+    username: <%= ENV.fetch("QPAPER_APP_DATABASE_USERNAME", "postgres") %>
+    password: <%= ENV["QPAPER_APP_DATABASE_PASSWORD"] %>
+    host: <%= ENV.fetch("QPAPER_APP_DATABASE_HOST", "localhost") %>
+    port: <%= ENV.fetch("QPAPER_APP_DATABASE_PORT", 5432) %>
+  cache:
+    <<: *primary_production
+    database: qpaper_app_production_cache
+    migrations_paths: db/cache_migrate
+  queue:
+    <<: *primary_production
+    database: qpaper_app_production_queue
+    migrations_paths: db/queue_migrate
+  cable:
+    <<: *primary_production
+    database: qpaper_app_production_cable
+    migrations_paths: db/cable_migrate

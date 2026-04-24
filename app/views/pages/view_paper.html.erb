@@ -1,0 +1,47 @@
+<% content_for :title, "View Paper | QPaper" %>
+
+<section class="print-shell">
+  <div class="paper-actions no-print">
+    <%= link_to "Back to Dashboard", pages_dashboard_path, class: "btn-ghost interactive" %>
+    <button type="button" class="btn interactive" onclick="window.print()">Print or Save PDF</button>
+  </div>
+
+  <article class="paper-frame">
+    <div class="paper-head">
+      <h1>Mid-Term Examination 2026</h1>
+      <h2>Data Structures (CS101)</h2>
+      <div class="paper-meta">
+        <span>Time Allowed: 3 Hours</span>
+        <span>Maximum Marks: 100</span>
+      </div>
+    </div>
+
+    <section class="paper-section">
+      <h3>Part A: Short Answer Questions</h3>
+      <ol>
+        <li>What is a Data Structure?</li>
+        <li>Define a stack and list its primary operations.</li>
+        <li>Explain the difference between a tree and a graph.</li>
+        <li>What is time complexity?</li>
+        <li>List two applications of queues.</li>
+      </ol>
+    </section>
+
+    <section class="paper-section">
+      <h3>Part B: Descriptive Questions</h3>
+      <ol start="6">
+        <li>Write the algorithm for binary search.</li>
+        <li>Explain the process of converting infix to postfix notation.</li>
+        <li>Describe a binary search tree with a suitable example.</li>
+      </ol>
+    </section>
+
+    <section class="paper-section">
+      <h3>Part C: Analytical Questions</h3>
+      <ol start="9">
+        <li>Write an algorithm to reverse a doubly linked list and analyze its time complexity.</li>
+        <li>Explain AVL trees and the rotations required after insertion.</li>
+      </ol>
+    </section>
+  </article>
+</section>

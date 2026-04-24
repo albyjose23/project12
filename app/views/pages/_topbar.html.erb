@@ -1,0 +1,16 @@
+<header class="topbar">
+  <div>
+    <div class="eyebrow"><%= eyebrow || "Workspace" %></div>
+    <h1 class="page-title"><%= title %></h1>
+    <% if subtitle.present? %>
+      <p class="page-copy"><%= subtitle %></p>
+    <% end %>
+  </div>
+
+  <div class="btn-row">
+    <% if local_assigns[:action_label].present? && local_assigns[:action_path].present? %>
+      <%= link_to action_label, action_path, class: "btn-ghost" %>
+    <% end %>
+    <%= link_to "Logout", pages_login_path, class: "btn" %>
+  </div>
+</header>
