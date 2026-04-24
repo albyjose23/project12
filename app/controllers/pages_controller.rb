@@ -32,7 +32,7 @@ class PagesController < ApplicationController
       content: params[:content],
       difficulty: params[:difficulty],
       subject_id: params[:subject_id],
-      unit: params[:unit] # Added unit support
+      unit: params[:unit]
     )
     
     if @question.save
@@ -54,34 +54,43 @@ class PagesController < ApplicationController
     # 1. Find Subject
     @subject = Subject.find(params[:subject_id])
     
-    # 2. Build Paper (FIXED: Removed unknown exam_type attribute)
+    # 2. Build Paper header
     @paper = Paper.new(
       title: params[:title],
-      # exam_type removed because it's not in your database table yet
       subject: @subject
     )
 
     if @paper.save
-      # 3. THE RANDOMIZER: 
-      # Fetching questions based on user-defined limits
-      easy_qs   = @subject.questions.where(difficulty: 'Easy').order("RANDOM()").limit(params[:easy_count].to_i)
-      medium_qs = @subject.questions.where(difficulty: 'Medium').order("RANDOM()").limit(params[:medium_count].to_i)
-      hard_qs   = @subject.questions.where(difficulty: 'Hard').order("RANDOM()").limit(params[:hard_count].to_i)
+      # 3. THE SHUFFLE ALGORITHM:
+      # Separate sessions for each difficulty to ensure exact selection
+      diff_counts = {
+        'Easy'   => params[:easy_count].to_i,
+        'Medium' => params[:medium_count].to_i,
+        'Hard'   => params[:hard_count].to_i
+      }
 
-      all_selected = [easy_qs, medium_qs, hard_qs].flatten
+      has_questions = false
 
-      if all_selected.any?
-        # 4. Link questions to the paper using the join table
-        all_selected.each do |q|
+      diff_counts.each do |diff, count|
+        next if count <= 0
+        
+        # Shuffle and pick the limit for this specific difficulty bucket
+        questions = @subject.questions.where(difficulty: diff).order("RANDOM()").limit(count)
+        
+        questions.each do |q|
           PaperQuestion.create!(paper: @paper, question: q)
+          has_questions = true
         end
+      end
+
+      if has_questions
         redirect_to view_paper_path(id: @paper.id)
       else
-        @paper.destroy # Cleanup empty paper
-        redirect_to pages_generate_paper_path, alert: "No questions found for the selected subject/difficulty."
+        @paper.destroy # Cleanup if no questions were added
+        redirect_to pages_generate_paper_path, alert: "Algorithm failed: No questions found for the selected counts."
       end
     else
-      redirect_to pages_generate_paper_path, alert: "Failed to generate paper header."
+      redirect_to pages_generate_paper_path, alert: "Failed to generate paper."
     end
   end
 
@@ -107,6 +116,39 @@ class PagesController < ApplicationController
       redirect_to pages_question_bank_path, alert: "Please upload a valid CSV file."
     end
   end
+
+  def edit_subject
+  @subject = Subject.find(params[:id])
+end
+
+def update_subject
+  @subject = Subject.find(params[:id])
+  if @subject.update(name: params[:name], code: params[:code])
+    redirect_to pages_manage_subjects_path, notice: "Subject updated successfully!"
+  else
+    render :edit_subject, alert: "Failed to update subject."
+  end
+end
+
+def edit_question
+  @question = Question.find(params[:id])
+  @subjects = Subject.all
+end
+
+def update_question
+  @question = Question.find(params[:id])
+  if @question.update(content: params[:content], difficulty: params[:difficulty], unit: params[:unit], subject_id: params[:subject_id])
+    redirect_to pages_question_bank_path, notice: "Question updated successfully!"
+  else
+    redirect_to edit_question_path(@question), alert: "Failed to update question."
+  end
+end
+
+def delete_question
+  @question = Question.find(params[:id])
+  @question.destroy
+  redirect_to pages_question_bank_path, notice: "Question deleted successfully."
+end
 
   def generate_paper; end
 

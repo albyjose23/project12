@@ -829,3 +829,29 @@ tbody tr:hover {
     padding-bottom: 1rem;
   }
 }
+/* Dark Mode styles for Dropdowns, Inputs, and Textareas */
+.ui-select, 
+.ui-input, 
+.ui-textarea,
+select, 
+input, 
+textarea {
+  background-color: #1a1a1a !important; /* Deep black/grey background */
+  color: #ffffff !important;           /* Pure white text */
+  border: 1px solid #333333 !important; /* Subtle dark border */
+  padding: 8px;
+  border-radius: 6px;
+}
+
+/* This is the critical fix for the dropdown list items */
+option {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+}
+
+/* Change the border color when you click inside to make it "glow" */
+.ui-select:focus, 
+.ui-input:focus {
+  border-color: #3b82f6 !important; /* Blue glow */
+  outline: none;
+}

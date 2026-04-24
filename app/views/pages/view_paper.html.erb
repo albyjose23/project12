@@ -7,6 +7,7 @@
   </div>
 
   <article class="paper-frame">
+    <%# --- Header Section --- %>
     <div class="paper-head">
       <h1 class="institute-name">INSTITUTE OF HIGHER EDUCATION</h1>
       <h2 class="exam-title"><%= @paper.title.upcase %></h2>
@@ -16,9 +17,9 @@
       
       <div class="paper-meta">
         <div class="meta-row">
-          <%# Pulling these from subject because Paper no longer stores them %>
-          <span><strong>Dept:</strong> <%= @paper.subject.try(:department) || "Computer Science" %></span>
-          <span><strong>Type:</strong> <%= @paper.exam_type %></span>
+          <span><strong>Dept:</strong> <%= @paper.subject.try(:department) || "Department of Science" %></span>
+          <%# Fallback for exam_type since column was removed %>
+          <span><strong>Exam Type:</strong> <%= @paper.try(:exam_type) || "Semester Examination" %></span>
         </div>
         <div class="meta-row">
           <span><strong>Time:</strong> 3 Hours</span>
@@ -27,7 +28,7 @@
       </div>
     </div>
 
-    <%# --- Part A --- %>
+    <%# --- Part A: Easy Questions --- %>
     <section class="paper-section">
       <div class="section-header">
         <h3>PART A — Short Answer Questions</h3>
@@ -43,12 +44,13 @@
       </ol>
     </section>
 
-    <%# --- Part B --- %>
+    <%# --- Part B: Medium Questions --- %>
     <section class="paper-section">
       <div class="section-header">
         <h3>PART B — Descriptive Questions</h3>
         <span class="marks-note">Answer any FIVE questions</span>
       </div>
+      <%# Automatic numbering offset based on Part A count %>
       <ol class="question-list" start="<%= @paper.questions.where(difficulty: 'Easy').count + 1 %>">
         <% @paper.questions.where(difficulty: 'Medium').each do |q| %>
           <li class="question-item">
@@ -59,12 +61,13 @@
       </ol>
     </section>
 
-    <%# --- Part C --- %>
+    <%# --- Part C: Hard Questions --- %>
     <section class="paper-section">
       <div class="section-header">
         <h3>PART C — Analytical Questions</h3>
         <span class="marks-note">Case Study / Problem Solving</span>
       </div>
+      <%# Automatic numbering offset based on Parts A and B counts %>
       <ol class="question-list" start="<%= @paper.questions.where(difficulty: ['Easy', 'Medium']).count + 1 %>">
         <% @paper.questions.where(difficulty: 'Hard').each do |q| %>
           <li class="question-item">
@@ -75,6 +78,7 @@
       </ol>
     </section>
 
+    <%# --- Footer Section --- %>
     <div class="paper-footer">
       <div class="signature-line">Subject Expert Signature</div>
       <div class="signature-line">Controller of Examination</div>
@@ -82,32 +86,101 @@
   </article>
 </section>
 
-<%# Note: Keep your existing <style> block here %>
-
 <style>
-  /* Quick Inline Styles for the Paper */
-  .paper-frame { padding: 40px; background: white; color: black; font-family: "Times New Roman", Times, serif; }
-  .paper-head { text-align: center; border-bottom: 2px solid black; margin-bottom: 20px; padding-bottom: 10px; }
-  .institute-name { font-size: 24px; font-weight: bold; margin-bottom: 5px; }
-  .paper-meta { display: flex; flex-direction: column; margin-top: 15px; border-top: 1px solid #000; padding-top: 5px; }
-  .meta-row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 2px; }
+  /* Professional Exam Paper Styling */
+  .paper-frame { 
+    padding: 60px; 
+    background: white; 
+    color: black; 
+    font-family: "Times New Roman", Times, serif;
+    min-height: 297mm; /* A4 Height */
+  }
+
+  .paper-head { 
+    text-align: center; 
+    border-bottom: 2px solid black; 
+    margin-bottom: 25px; 
+    padding-bottom: 10px; 
+  }
+
+  .institute-name { font-size: 26px; font-weight: bold; margin-bottom: 5px; }
+  .exam-title { font-size: 20px; margin-bottom: 10px; text-decoration: underline; }
   
-  .section-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1px solid black; margin: 20px 0 10px; }
-  .section-header h3 { font-size: 16px; font-weight: bold; margin: 0; }
-  .marks-note { font-style: italic; font-size: 13px; }
+  .paper-meta { 
+    display: flex; 
+    flex-direction: column; 
+    margin-top: 15px; 
+    border-top: 1px solid #000; 
+    padding-top: 8px; 
+  }
 
-  .question-list { padding-left: 25px; }
-  .question-item { display: flex; justify-content: space-between; margin-bottom: 15px; line-height: 1.5; }
-  .q-content { flex: 1; padding-right: 20px; }
-  .q-marks { font-weight: bold; min-width: 40px; text-align: right; }
+  .meta-row { 
+    display: flex; 
+    justify-content: space-between; 
+    font-size: 15px; 
+    font-weight: bold;
+    margin-bottom: 4px; 
+  }
+  
+  .section-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: flex-end; 
+    border-bottom: 1px solid black; 
+    margin: 30px 0 15px; 
+    padding-bottom: 5px;
+  }
 
-  .paper-footer { display: flex; justify-content: space-between; margin-top: 60px; }
-  .signature-line { border-top: 1px solid black; padding-top: 5px; width: 200px; text-align: center; font-size: 12px; }
+  .section-header h3 { font-size: 17px; font-weight: bold; margin: 0; }
+  .marks-note { font-style: italic; font-size: 14px; }
 
+  .question-list { padding-left: 30px; }
+  .question-item { 
+    display: flex; 
+    justify-content: space-between; 
+    margin-bottom: 18px; 
+    line-height: 1.6; 
+    font-size: 16px;
+  }
+
+  .q-content { flex: 1; padding-right: 30px; text-align: justify; }
+  .q-marks { font-weight: bold; min-width: 50px; text-align: right; }
+
+  .paper-footer { 
+    display: flex; 
+    justify-content: space-between; 
+    margin-top: 80px; 
+    padding-bottom: 40px;
+  }
+
+  .signature-line { 
+    border-top: 1px solid black; 
+    padding-top: 8px; 
+    width: 220px; 
+    text-align: center; 
+    font-size: 13px; 
+    font-weight: bold;
+  }
+
+  /* Print Optimization */
   @media print {
     .no-print { display: none !important; }
     body { background: white !important; padding: 0 !important; }
     .print-shell { padding: 0 !important; margin: 0 !important; }
-    .paper-frame { box-shadow: none !important; width: 100% !important; height: auto !important; }
+    .paper-frame { box-shadow: none !important; width: 100% !important; padding: 40px !important; }
+    @page { margin: 1cm; }
+  }
+
+  /* Preview Actions Styling */
+  .paper-actions {
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 15px;
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
   }
 </style>

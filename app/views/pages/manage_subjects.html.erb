@@ -26,7 +26,7 @@
           <div class="field-grid">
             <div class="field">
               <label for="subject_department">Department</label>
-              <select id="subject_department" name="department">
+              <select id="subject_department" name="department" class="ui-select">
                 <option>BCA</option>
                 <option>B.Sc Computer Science</option>
                 <option>BBA</option>
@@ -35,17 +35,17 @@
             </div>
             <div class="field">
               <label for="subject_semester">Semester</label>
-              <select id="subject_semester" name="semester">
-                <% (1..6).each do |i| %><option>Semester <%= i %></option><% end %>
+              <select id="subject_semester" name="semester" class="ui-select">
+                <% (1..6).each do |i| %><option value="Semester <%= i %>">Semester <%= i %></option><% end %>
               </select>
             </div>
             <div class="field">
               <label for="subject_name">Subject Name</label>
-              <input id="subject_name" name="name" type="text" placeholder="Data Structures" required>
+              <input id="subject_name" name="name" type="text" placeholder="Data Structures" class="ui-input" required>
             </div>
             <div class="field">
               <label for="subject_code">Subject Code</label>
-              <input id="subject_code" name="code" type="text" placeholder="CS101" required>
+              <input id="subject_code" name="code" type="text" placeholder="CS101" class="ui-input" required>
             </div>
           </div>
 
@@ -65,7 +65,7 @@
         </div>
 
         <div class="table-wrap">
-          <table>
+          <table class="ui-table">
             <thead>
               <tr>
                 <th>Code</th>
@@ -75,18 +75,19 @@
               </tr>
             </thead>
             <tbody>
-              <%# DYNAMIC LOOPING THROUGH YOUR DATABASE %>
-              <% Subject.all.order(code: :asc).each do |s| %>
-                <tr>
-                  <td class="strong"><%= s.code %></td>
-                  <td><%= s.name %></td>
-                  <td class="muted"><%= s.try(:semester) || "N/A" %></td>
-                  <td class="text-right">
-                    <button type="button" class="table-action">Edit</button>
-                  </td>
-                </tr>
-              <% end %>
-              <% if Subject.none? %>
+              <% if Subject.any? %>
+                <% Subject.all.order(code: :asc).each do |s| %>
+                  <tr>
+                    <td class="strong"><%= s.code %></td>
+                    <td><%= s.name %></td>
+                    <td class="muted"><%= s.try(:semester) || "N/A" %></td>
+                    <td class="text-right">
+                      <%# UPDATED: Link to the edit page %>
+                      <%= link_to "Edit", edit_subject_path(s), class: "table-action-link" %>
+                    </td>
+                  </tr>
+                <% end %>
+              <% else %>
                 <tr><td colspan="4" class="text-center muted">No subjects added yet.</td></tr>
               <% end %>
             </tbody>
@@ -97,4 +98,34 @@
   </main>
 </section>
 
-<div id="subject-toast" class="toast">Subject saved successfully.</div>
+<% if flash[:notice] %>
+  <div id="subject-toast" class="toast show"><%= flash[:notice] %></div>
+<% end %>
+
+<style>
+  /* Styling for the Edit link to look like your table button */
+  .table-action-link {
+    color: #3b82f6;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 14px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+
+  .table-action-link:hover {
+    background: rgba(59, 130, 246, 0.1);
+    text-decoration: underline;
+  }
+
+  /* Ensure inputs follow your dark/custom theme if applicable */
+  .ui-select, .ui-input {
+    width: 100%;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #333;
+    background: #1a1a1a;
+    color: white;
+  }
+</style>

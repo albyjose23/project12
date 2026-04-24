@@ -1,0 +1,44 @@
+<section class="app-shell">
+  <%= render "sidebar", active: :question_bank %>
+  <main class="app-main">
+    <article class="panel" style="max-width: 800px; margin: 2rem auto;">
+      <div class="panel-header">
+        <h3>Edit Question</h3>
+      </div>
+      
+      <%= form_with url: update_question_path(@question), method: :patch, local: true do |f| %>
+        <div class="p-6">
+          <div class="field-grid">
+            <div class="field">
+              <label>Subject</label>
+              <%= f.collection_select :subject_id, Subject.all, :id, :name, {selected: @question.subject_id}, {class: "ui-select"} %>
+            </div>
+            <div class="field">
+              <label>Difficulty</label>
+              <select name="difficulty" class="ui-select">
+                <% ['Easy', 'Medium', 'Hard'].each do |d| %>
+                  <option value="<%= d %>" <%= 'selected' if @question.difficulty == d %>><%= d %></option>
+                <% end %>
+              </select>
+            </div>
+            <div class="field">
+              <label>Unit</label>
+              <input type="number" name="unit" value="<%= @question.unit %>" class="ui-input">
+            </div>
+          </div>
+
+          <div class="field mt-4">
+            <label>Question Content</label>
+            <textarea name="content" class="ui-textarea" rows="6"><%= @question.content %></textarea>
+          </div>
+
+          <div class="btn-row mt-6">
+            <button type="submit" class="btn">Update Question</button>
+            <%# FIXED CANCEL: Links back to Question Bank %>
+            <%= link_to "Cancel", pages_question_bank_path, class: "btn-ghost" %>
+          </div>
+        </div>
+      <% end %>
+    </article>
+  </main>
+</section>

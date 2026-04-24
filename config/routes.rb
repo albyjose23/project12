@@ -18,9 +18,15 @@ Rails.application.routes.draw do
   get "pages/view_paper", to: "pages#view_paper", as: :view_paper
   post "create_paper", to: "pages#create_paper", as: :create_paper
   delete "delete_paper/:id", to: "pages#delete_paper", as: :delete_paper
-
+get  'edit_subject/:id', to: 'pages#edit_subject', as: :edit_subject
+patch 'update_subject/:id', to: 'pages#update_subject', as: :update_subject
   # Subject Management
   post "add_subject", to: "pages#add_subject", as: :add_subject
+
+  
+get    'edit_question/:id', to: 'pages#edit_question', as: :edit_question
+patch  'update_question/:id', to: 'pages#update_question', as: :update_question
+delete 'delete_question/:id', to: 'pages#delete_question', as: :delete_question
 
   # --- CSV IMPORT SECTION (FIXED) ---
   # The GET route for the upload screen
