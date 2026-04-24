@@ -32,20 +32,27 @@
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td class="muted">Apr 24, 2026</td>
-                <td class="strong">Mid-Term Examination 2026</td>
-                <td>Data Structures (CS101)</td>
-                <td><span class="badge">Published</span></td>
-                <td class="text-right"><%= link_to "Open", pages_view_paper_path, class: "table-action interactive" %></td>
-              </tr>
-              <tr>
-                <td class="muted">Apr 15, 2026</td>
-                <td class="strong">Unit Test 2</td>
-                <td>Operating Systems (CS102)</td>
-                <td><span class="badge">Draft</span></td>
-                <td class="text-right"><%= link_to "Open", pages_view_paper_path, class: "table-action interactive" %></td>
-              </tr>
+              <% if @papers.any? %>
+                <% @papers.each do |paper| %>
+                  <tr>
+                    <td class="muted"><%= paper.created_at.strftime("%b %d, %Y") %></td>
+                    <td class="strong"><%= paper.title.presence || "Untitled Paper" %></td>
+                    <td><%= paper.subject.name %> (<%= paper.subject.code %>)</td>
+                    <td><span class="badge">Saved</span></td>
+                    <td class="text-right">
+                      <div class="flex justify-end gap-3">
+                        <%= link_to "Open", view_paper_path(id: paper.id), class: "table-action" %>
+                        <%# NEW: DELETE ACTION %>
+                        <%= button_to "Delete", delete_paper_path(id: paper.id), method: :delete, data: { confirm: "Are you sure?" }, class: "table-action text-red-500" %>
+                      </div>
+                    </td>
+                  </tr>
+                <% end %>
+              <% else %>
+                <tr>
+                  <td colspan="5" class="muted text-center py-8">No generated papers yet.</td>
+                </tr>
+              <% end %>
             </tbody>
           </table>
         </div>

@@ -1,23 +1,35 @@
 Rails.application.routes.draw do
+  # Authentication
   get "pages/register"
+  post "pages/register", to: "users#create"
   get "pages/login"
+  post "pages/login", to: "sessions#create"
   root "pages#login"
-  get "pages/dashboard"
-  get "pages/manage_subjects"
-  get "pages/question_bank"
-  get "pages/generate_paper"
-  get "pages/generated_papers"
-  get "pages/view_paper"
-  # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
+  delete "logout", to: "sessions#destroy", as: :logout
+  
+  # Core Dashboard & Pages
+  get "pages/dashboard", as: :pages_dashboard
+  get "pages/manage_subjects", as: :pages_manage_subjects
+  get "pages/question_bank", as: :pages_question_bank
+  get "pages/generate_paper", as: :pages_generate_paper
+  get "pages/generated_papers", as: :pages_generated_papers
+  
+  # Paper View & Management
+  get "pages/view_paper", to: "pages#view_paper", as: :view_paper
+  post "create_paper", to: "pages#create_paper", as: :create_paper
+  delete "delete_paper/:id", to: "pages#delete_paper", as: :delete_paper
 
-  # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
-  # Can be used by load balancers and uptime monitors to verify that the app is live.
+  # Subject Management
+  post "add_subject", to: "pages#add_subject", as: :add_subject
+
+  # --- CSV IMPORT SECTION (FIXED) ---
+  # The GET route for the upload screen
+  get "import_questions_page", to: "pages#import_questions_page", as: :import_questions_page
+  post "add_question", to: "pages#add_question", as: :add_question
+  # The POST route for the actual upload action
+  post "import_questions", to: "pages#import_questions", as: :import_questions
+  # ----------------------------------
+
+  # Health Check
   get "up" => "rails/health#show", as: :rails_health_check
-
-  # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)
-  # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
-  # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
-
-  # Defines the root path route ("/")
-  # root "posts#index"
 end

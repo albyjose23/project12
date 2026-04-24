@@ -11,6 +11,6 @@
     <% if local_assigns[:action_label].present? && local_assigns[:action_path].present? %>
       <%= link_to action_label, action_path, class: "btn-ghost" %>
     <% end %>
-    <%= link_to "Logout", pages_login_path, class: "btn" %>
+    <%= link_to "Logout", logout_path, class: "btn", data: { turbo_method: :delete } %>
   </div>
 </header>

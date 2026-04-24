@@ -1,0 +1,68 @@
+<% content_for :title, "Import Questions | QPaper" %>
+
+<section class="app-shell">
+  <%= render "sidebar", active: :question_bank %>
+
+  <main class="app-main">
+    <%= render "topbar", 
+        title: "Bulk Import", 
+        subtitle: "Upload your questions via CSV file.", 
+        eyebrow: "Repository" %>
+
+    <div class="app-content">
+      <article class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>CSV Question Loader</h3>
+            <p class="subtle-text">Fill your bank instantly.</p>
+          </div>
+          <span class="badge">CSV</span>
+        </div>
+
+        <div class="p-6">
+          <%# Ensure the URL matches your POST route helper %>
+          <%= form_with url: import_questions_path, method: :post, local: true, html: { multipart: true } do |f| %>
+            
+            <div class="field">
+              <label for="subject_id">Target Subject</label>
+              <%# Pulling real subjects from your database %>
+              <%= f.collection_select :subject_id, Subject.all, :id, :name, 
+                  { prompt: "Select Subject" }, 
+                  { class: "ui-select", required: true, id: "subject_id" } %>
+            </div>
+
+            <div class="field">
+              <label for="csv_file">Select CSV File</label>
+              <%# Standard file input for CSVs %>
+              <input type="file" name="file" id="csv_file" accept=".csv" class="ui-input" required>
+              <p class="subtle-text mt-2">Required headers: <strong>content</strong>, <strong>difficulty</strong></p>
+            </div>
+
+            <div class="btn-row">
+              <button type="submit" class="btn">Start Import Process</button>
+              <%= link_to "Cancel", pages_question_bank_path, class: "btn-ghost" %>
+            </div>
+
+          <% end %>
+        </div>
+      </article>
+
+      <article class="panel mt-8">
+        <div class="panel-header">
+          <div>
+            <h3>Expected CSV Format</h3>
+            <p class="subtle-text">Use these column headers exactly.</p>
+          </div>
+        </div>
+        <div class="p-6">
+          <%# Using surface-inset for code snippets matches your dashboard style %>
+          <pre class="surface-inset p-4 rounded text-sm overflow-x-auto">
+content,difficulty
+"What is a variable?",Easy
+"Explain recursion.",Medium
+"Solve the traveling salesman problem.",Hard</pre>
+        </div>
+      </article>
+    </div>
+  </main>
+</section>

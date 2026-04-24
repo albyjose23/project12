@@ -21,43 +21,39 @@
           <span class="badge">Form</span>
         </div>
 
-        <div class="field-grid">
-          <div class="field">
-            <label for="subject_department">Department</label>
-            <select id="subject_department">
-              <option>Select department</option>
-              <option>BCA</option>
-              <option>B.Sc Computer Science</option>
-              <option>BBA</option>
-              <option>B.Com</option>
-            </select>
+        <%# Form pointed to add_subject_path %>
+        <%= form_with url: add_subject_path, method: :post, local: true do |f| %>
+          <div class="field-grid">
+            <div class="field">
+              <label for="subject_department">Department</label>
+              <select id="subject_department" name="department">
+                <option>BCA</option>
+                <option>B.Sc Computer Science</option>
+                <option>BBA</option>
+                <option>B.Com</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="subject_semester">Semester</label>
+              <select id="subject_semester" name="semester">
+                <% (1..6).each do |i| %><option>Semester <%= i %></option><% end %>
+              </select>
+            </div>
+            <div class="field">
+              <label for="subject_name">Subject Name</label>
+              <input id="subject_name" name="name" type="text" placeholder="Data Structures" required>
+            </div>
+            <div class="field">
+              <label for="subject_code">Subject Code</label>
+              <input id="subject_code" name="code" type="text" placeholder="CS101" required>
+            </div>
           </div>
-          <div class="field">
-            <label for="subject_semester">Semester</label>
-            <select id="subject_semester">
-              <option>Select semester</option>
-              <option>Semester 1</option>
-              <option>Semester 2</option>
-              <option>Semester 3</option>
-              <option>Semester 4</option>
-              <option>Semester 5</option>
-              <option>Semester 6</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="subject_name">Subject Name</label>
-            <input id="subject_name" type="text" placeholder="Data Structures">
-          </div>
-          <div class="field">
-            <label for="subject_code">Subject Code</label>
-            <input id="subject_code" type="text" placeholder="CS101">
-          </div>
-        </div>
 
-        <div class="btn-row">
-          <button type="button" class="btn" data-toast-trigger="subject-toast">Add Subject</button>
-          <button type="button" class="btn-ghost">Import Syllabus</button>
-        </div>
+          <div class="btn-row">
+            <button type="submit" class="btn">Add Subject</button>
+            <button type="button" class="btn-ghost">Import Syllabus</button>
+          </div>
+        <% end %>
       </article>
 
       <article class="panel">
@@ -72,28 +68,27 @@
           <table>
             <thead>
               <tr>
-                <th>Department</th>
-                <th>Semester</th>
                 <th>Code</th>
                 <th>Subject</th>
+                <th>Semester</th>
                 <th class="text-right">Action</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td class="strong">BCA</td>
-                <td class="muted">Semester 1</td>
-                <td class="strong">CS101</td>
-                <td>Data Structures</td>
-                <td class="text-right"><button type="button" class="table-action">Edit</button></td>
-              </tr>
-              <tr>
-                <td class="strong">B.Sc CS</td>
-                <td class="muted">Semester 3</td>
-                <td class="strong">CS102</td>
-                <td>Operating Systems</td>
-                <td class="text-right"><button type="button" class="table-action">Archive</button></td>
-              </tr>
+              <%# DYNAMIC LOOPING THROUGH YOUR DATABASE %>
+              <% Subject.all.order(code: :asc).each do |s| %>
+                <tr>
+                  <td class="strong"><%= s.code %></td>
+                  <td><%= s.name %></td>
+                  <td class="muted"><%= s.try(:semester) || "N/A" %></td>
+                  <td class="text-right">
+                    <button type="button" class="table-action">Edit</button>
+                  </td>
+                </tr>
+              <% end %>
+              <% if Subject.none? %>
+                <tr><td colspan="4" class="text-center muted">No subjects added yet.</td></tr>
+              <% end %>
             </tbody>
           </table>
         </div>

@@ -21,29 +21,14 @@
           <span class="badge">Ready to Run</span>
         </div>
 
-        <form class="stack" data-demo-loading="true" data-loading-text="Generating paper..." data-loading-delay="1500" data-redirect-url="<%= pages_view_paper_path %>">
+        <%# Form updated to use subject_id for controller compatibility %>
+        <form action="<%= create_paper_path %>" method="POST" class="mt-8 space-y-6">
+          <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+          
           <div class="field-grid">
             <div class="field">
-              <label for="paper_department">Department</label>
-              <select id="paper_department">
-                <option>BCA</option>
-                <option>B.Sc Computer Science</option>
-                <option>BBA</option>
-                <option>B.Com</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="paper_semester">Semester</label>
-              <select id="paper_semester">
-                <option>Semester 1</option>
-                <option>Semester 2</option>
-                <option>Semester 3</option>
-                <option>Semester 4</option>
-              </select>
-            </div>
-            <div class="field">
               <label for="paper_exam_type">Exam Type</label>
-              <select id="paper_exam_type">
+              <select id="paper_exam_type" name="exam_type" class="ui-select">
                 <option>First Internal</option>
                 <option>Second Internal</option>
                 <option>Model Exam</option>
@@ -52,68 +37,68 @@
             </div>
             <div class="field">
               <label for="paper_subject">Target Subject</label>
-              <select id="paper_subject">
-                <option>Data Structures (CS101)</option>
-                <option>Operating Systems (CS102)</option>
+              <select id="paper_subject" name="subject_id" class="ui-select" required>
+                <option value="">Select Subject</option>
+                <% Subject.all.each do |s| %>
+                  <option value="<%= s.id %>"><%= s.name %> (<%= s.code %>)</option>
+                <% end %>
               </select>
             </div>
           </div>
 
           <div class="field">
             <label for="paper_title">Examination Title</label>
-            <input id="paper_title" type="text" value="Mid-Term Examination 2026">
+            <input id="paper_title" name="title" type="text" class="ui-input" value="Mid-Term Examination 2026" required>
           </div>
 
           <div class="list-grid">
             <div class="panel">
-              <div class="panel-headline">
+              <div class="panel-headline p-4">
                 <div>
                   <h4>Difficulty Distribution</h4>
                   <p class="subtle-text">Balance sections by difficulty.</p>
                 </div>
               </div>
 
-              <div class="stack">
+              <div class="stack p-4">
                 <div class="field">
-                  <label for="easy_count">Section A | Easy</label>
-                  <input id="easy_count" type="number" value="5">
+                  <label for="easy_count">Section A | Easy Questions</label>
+                  <input id="easy_count" name="easy_count" type="number" class="ui-input" value="5" min="0">
                 </div>
                 <div class="field">
-                  <label for="medium_count">Section B | Medium</label>
-                  <input id="medium_count" type="number" value="3">
+                  <label for="medium_count">Section B | Medium Questions</label>
+                  <input id="medium_count" name="medium_count" type="number" class="ui-input" value="3" min="0">
                 </div>
                 <div class="field">
-                  <label for="hard_count">Section C | Hard</label>
-                  <input id="hard_count" type="number" value="2">
+                  <label for="hard_count">Section C | Hard Questions</label>
+                  <input id="hard_count" name="hard_count" type="number" class="ui-input" value="2" min="0">
                 </div>
               </div>
             </div>
 
             <div class="panel">
-              <div class="panel-headline">
+              <div class="panel-headline p-4">
                 <div>
                   <h4>Generation Notes</h4>
-                  <p class="subtle-text">Optional notes.</p>
+                  <p class="subtle-text">Optional instructions for the paper.</p>
                 </div>
               </div>
 
-              <div class="field">
+              <div class="field p-4">
                 <label for="paper_notes">Notes</label>
-                <textarea id="paper_notes" placeholder="Add paper notes."></textarea>
+                <textarea id="paper_notes" name="notes" class="ui-textarea" placeholder="e.g. Answer all questions in Part A."></textarea>
               </div>
             </div>
           </div>
 
           <div class="btn-row">
-            <button type="submit" class="btn" data-loading-button="true">
-              <span data-loading-label="true">Generate Paper</span>
+            <button type="submit" class="btn">
+              <span>Generate Paper</span>
             </button>
-            <button type="button" class="btn-ghost" data-toast-trigger="generate-toast">Save Template</button>
+            <button type="button" class="btn-ghost">Save Template</button>
           </div>
         </form>
       </article>
     </div>
   </main>
 </section>
-
-<div id="generate-toast" class="toast">Paper template saved for reuse.</div>
