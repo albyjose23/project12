@@ -4,19 +4,19 @@
   <%= render "sidebar", active: :question_bank %>
 
   <main class="app-main">
-    <%= render "topbar", 
-        title: "Bulk Import", 
-        subtitle: "Upload your questions via CSV file.", 
+    <%= render "topbar",
+        title: "Bulk Import",
+        subtitle: "Upload your questions via CSV or Word file.",
         eyebrow: "Repository" %>
 
     <div class="app-content">
       <article class="panel">
         <div class="panel-header">
           <div>
-            <h3>CSV Question Loader</h3>
+            <h3>Question Loader</h3>
             <p class="subtle-text">Fill your bank instantly.</p>
           </div>
-          <span class="badge">CSV</span>
+          <span class="badge">CSV / DOCX</span>
         </div>
 
         <div class="p-6">
@@ -26,16 +26,15 @@
             <div class="field">
               <label for="subject_id">Target Subject</label>
               <%# Pulling real subjects from your database %>
-              <%= f.collection_select :subject_id, Subject.all, :id, :name, 
+              <%= f.collection_select :subject_id, @subjects, :id, :name, 
                   { prompt: "Select Subject" }, 
                   { class: "ui-select", required: true, id: "subject_id" } %>
             </div>
 
             <div class="field">
-              <label for="csv_file">Select CSV File</label>
-              <%# Standard file input for CSVs %>
-              <input type="file" name="file" id="csv_file" accept=".csv" class="ui-input" required>
-              <p class="subtle-text mt-2">Required headers: <strong>content</strong>, <strong>difficulty</strong></p>
+              <label for="csv_file">Select CSV or Word File</label>
+              <input type="file" name="file" id="csv_file" accept=".csv,.docx" class="ui-input" required>
+              <p class="subtle-text mt-2">Accepted files: <strong>.csv</strong> and <strong>.docx</strong>. CSV needs the <strong>content</strong> header. Word files can use headings like <strong>Unit 1</strong>, <strong>Unit: 1</strong>, <strong>Section A</strong>, or <strong>Section: A</strong>, followed by one question per line.</p>
             </div>
 
             <div class="btn-row">
@@ -55,12 +54,35 @@
           </div>
         </div>
         <div class="p-6">
-          <%# Using surface-inset for code snippets matches your dashboard style %>
           <pre class="surface-inset p-4 rounded text-sm overflow-x-auto">
-content,difficulty
-"What is a variable?",Easy
-"Explain recursion.",Medium
-"Solve the traveling salesman problem.",Hard</pre>
+content,section,unit
+"What is a variable?",A,1
+"Explain recursion.",B,2
+"Solve the traveling salesman problem.",C,5</pre>
+        </div>
+      </article>
+
+      <article class="panel mt-8">
+        <div class="panel-header">
+          <div>
+            <h3>Expected Word Format</h3>
+            <p class="subtle-text">Use DOCX with one question per line under each section.</p>
+          </div>
+        </div>
+        <div class="p-6">
+          <pre class="surface-inset p-4 rounded text-sm overflow-x-auto">
+Unit 1
+Section A
+What is a variable?
+Define an algorithm.
+
+Unit 2
+Section B
+Explain recursion.
+
+Unit 5
+Section C
+Solve the traveling salesman problem.</pre>
         </div>
       </article>
     </div>

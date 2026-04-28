@@ -15,17 +15,20 @@
       <article class="panel">
         <div class="panel-header">
           <div>
-            <h3>Algorithm Configuration</h3>
-            <p class="subtle-text">Configure the paper and run generation.</p>
+            <h3>Paper Details</h3>
+            <p class="subtle-text">Enter the paper information and section-wise question counts in one place.</p>
           </div>
           <span class="badge">Ready to Run</span>
         </div>
 
-        <%# Form updated to use subject_id for controller compatibility %>
         <form action="<%= create_paper_path %>" method="POST" class="mt-8 space-y-6">
           <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
           
           <div class="field-grid">
+            <div class="field">
+              <label for="paper_title">Question Paper Title</label>
+              <input id="paper_title" name="title" type="text" class="ui-input" value="Mid-Term Examination 2026" required>
+            </div>
             <div class="field">
               <label for="paper_exam_type">Exam Type</label>
               <select id="paper_exam_type" name="exam_type" class="ui-select">
@@ -44,49 +47,53 @@
                 <% end %>
               </select>
             </div>
-          </div>
-
-          <div class="field">
-            <label for="paper_title">Examination Title</label>
-            <input id="paper_title" name="title" type="text" class="ui-input" value="Mid-Term Examination 2026" required>
+            <div class="field">
+              <label for="paper_duration">Exam Duration</label>
+              <input id="paper_duration" name="duration" type="text" class="ui-input" value="3 Hours" required>
+            </div>
+            <div class="field">
+              <label for="paper_total_marks">Total Marks</label>
+              <input id="paper_total_marks" name="total_marks" type="number" class="ui-input" value="44" min="1" required>
+            </div>
           </div>
 
           <div class="list-grid">
             <div class="panel">
               <div class="panel-headline p-4">
                 <div>
-                  <h4>Difficulty Distribution</h4>
-                  <p class="subtle-text">Balance sections by difficulty.</p>
+                  <h4>Question Selection</h4>
+                  <p class="subtle-text">Choose exactly how many questions you want from each marks section.</p>
                 </div>
               </div>
 
               <div class="stack p-4">
                 <div class="field">
-                  <label for="easy_count">Section A | Easy Questions</label>
-                  <input id="easy_count" name="easy_count" type="number" class="ui-input" value="5" min="0">
+                  <label for="section_a_count">2 Marks Questions</label>
+                  <input id="section_a_count" name="section_a_count" type="number" class="ui-input" value="5" min="0">
                 </div>
                 <div class="field">
-                  <label for="medium_count">Section B | Medium Questions</label>
-                  <input id="medium_count" name="medium_count" type="number" class="ui-input" value="3" min="0">
+                  <label for="section_b_count">6 Marks Questions</label>
+                  <input id="section_b_count" name="section_b_count" type="number" class="ui-input" value="3" min="0">
                 </div>
                 <div class="field">
-                  <label for="hard_count">Section C | Hard Questions</label>
-                  <input id="hard_count" name="hard_count" type="number" class="ui-input" value="2" min="0">
+                  <label for="section_c_count">8 Marks Questions</label>
+                  <input id="section_c_count" name="section_c_count" type="number" class="ui-input" value="2" min="0">
                 </div>
+                <p class="subtle-text">The entered total marks must match this selection: `(2 x count) + (6 x count) + (8 x count)`.</p>
               </div>
             </div>
 
             <div class="panel">
               <div class="panel-headline p-4">
                 <div>
-                  <h4>Generation Notes</h4>
-                  <p class="subtle-text">Optional instructions for the paper.</p>
+                  <h4>Instructions</h4>
+                  <p class="subtle-text">Add any directions you want printed on the question paper.</p>
                 </div>
               </div>
 
               <div class="field p-4">
-                <label for="paper_notes">Notes</label>
-                <textarea id="paper_notes" name="notes" class="ui-textarea" placeholder="e.g. Answer all questions in Part A."></textarea>
+                <label for="paper_instructions">Paper Instructions</label>
+                <textarea id="paper_instructions" name="instructions" class="ui-textarea" placeholder="e.g. Answer all questions in Section A."></textarea>
               </div>
             </div>
           </div>
@@ -95,7 +102,6 @@
             <button type="submit" class="btn">
               <span>Generate Paper</span>
             </button>
-            <button type="button" class="btn-ghost">Save Template</button>
           </div>
         </form>
       </article>

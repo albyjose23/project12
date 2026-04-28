@@ -9,70 +9,73 @@
   <article class="paper-frame">
     <%# --- Header Section --- %>
     <div class="paper-head">
-      <h1 class="institute-name">INSTITUTE OF HIGHER EDUCATION</h1>
+      <h1 class="institute-name">CHRIST COLLEGE OF SCIENCE AND MANAGEMENT</h1>
       <h2 class="exam-title"><%= @paper.title.upcase %></h2>
       <div class="paper-subhead">
         <strong>Subject:</strong> <%= @paper.subject.name %> (<%= @paper.subject.code %>)
       </div>
-      
+
       <div class="paper-meta">
         <div class="meta-row">
           <span><strong>Dept:</strong> <%= @paper.subject.try(:department) || "Department of Science" %></span>
-          <%# Fallback for exam_type since column was removed %>
           <span><strong>Exam Type:</strong> <%= @paper.try(:exam_type) || "Semester Examination" %></span>
         </div>
         <div class="meta-row">
-          <span><strong>Time:</strong> 3 Hours</span>
-          <span><strong>Max Marks:</strong> 100</span>
+          <span><strong>Time:</strong> <%= @paper.duration.presence || "3 Hours" %></span>
+          <span><strong>Max Marks:</strong> <%= @paper.total_marks.presence || @paper.questions.sum(&:display_marks) %></span>
         </div>
       </div>
     </div>
 
-    <%# --- Part A: Easy Questions --- %>
+    <% if @paper.instructions.present? %>
+      <div class="paper-instructions">
+        <strong>Instructions:</strong> <%= @paper.instructions %>
+      </div>
+    <% end %>
+
+    <%# --- SECTION A: 2 Marks --- %>
     <section class="paper-section">
       <div class="section-header">
-        <h3>PART A — Short Answer Questions</h3>
+        <h3>SECTION A - (2 Marks Each)</h3>
         <span class="marks-note">Answer ALL questions</span>
       </div>
       <ol class="question-list">
-        <% @paper.questions.where(difficulty: 'Easy').each do |q| %>
+        <% @section_a_questions.each do |q| %>
           <li class="question-item">
             <div class="q-content"><%= q.content %></div>
-            <div class="q-marks">[<%= q.try(:marks) || 2 %>]</div>
+            <div class="q-marks">[<%= q.display_marks %>]</div>
           </li>
         <% end %>
       </ol>
     </section>
 
-    <%# --- Part B: Medium Questions --- %>
+    <%# --- SECTION B: 6 Marks --- %>
     <section class="paper-section">
       <div class="section-header">
-        <h3>PART B — Descriptive Questions</h3>
+        <h3>SECTION B - (6 Marks Each)</h3>
         <span class="marks-note">Answer any FIVE questions</span>
       </div>
-      <%# Automatic numbering offset based on Part A count %>
-      <ol class="question-list" start="<%= @paper.questions.where(difficulty: 'Easy').count + 1 %>">
-        <% @paper.questions.where(difficulty: 'Medium').each do |q| %>
+      <ol class="question-list" start="<%= @section_a_questions.count + 1 %>">
+        <% @section_b_questions.each do |q| %>
           <li class="question-item">
             <div class="q-content"><%= q.content %></div>
-            <div class="q-marks">[<%= q.try(:marks) || 10 %>]</div>
+            <div class="q-marks">[<%= q.display_marks %>]</div>
           </li>
         <% end %>
       </ol>
     </section>
 
-    <%# --- Part C: Hard Questions --- %>
+    <%# --- SECTION C: 8 Marks --- %>
     <section class="paper-section">
       <div class="section-header">
-        <h3>PART C — Analytical Questions</h3>
-        <span class="marks-note">Case Study / Problem Solving</span>
+        <h3>SECTION C - (8 Marks Each)</h3>
+        <span class="marks-note">Detailed / Analytical Questions</span>
       </div>
-      <%# Automatic numbering offset based on Parts A and B counts %>
-      <ol class="question-list" start="<%= @paper.questions.where(difficulty: ['Easy', 'Medium']).count + 1 %>">
-        <% @paper.questions.where(difficulty: 'Hard').each do |q| %>
+      <ol class="question-list" start="<%= @section_a_questions.count + @section_b_questions.count + 1 %>">
+        <% @section_c_questions.each do |q| %>
           <li class="question-item">
             <div class="q-content"><%= q.content %></div>
-            <div class="q-marks">[<%= q.try(:marks) || 20 %>]</div>
+            <div class="q-marks">[<%= q.display_marks %>]</div>
           </li>
         <% end %>
       </ol>
@@ -87,47 +90,54 @@
 </section>
 
 <style>
-  /* Professional Exam Paper Styling */
-  .paper-frame { 
-    padding: 60px; 
-    background: white; 
-    color: black; 
+  /* Professional Exam Paper Styling - No changes made to your styles */
+  .paper-frame {
+    padding: 60px;
+    background: white;
+    color: black;
     font-family: "Times New Roman", Times, serif;
-    min-height: 297mm; /* A4 Height */
+    min-height: 297mm;
   }
 
-  .paper-head { 
-    text-align: center; 
-    border-bottom: 2px solid black; 
-    margin-bottom: 25px; 
-    padding-bottom: 10px; 
+  .paper-head {
+    text-align: center;
+    border-bottom: 2px solid black;
+    margin-bottom: 25px;
+    padding-bottom: 10px;
   }
 
   .institute-name { font-size: 26px; font-weight: bold; margin-bottom: 5px; }
   .exam-title { font-size: 20px; margin-bottom: 10px; text-decoration: underline; }
-  
-  .paper-meta { 
-    display: flex; 
-    flex-direction: column; 
-    margin-top: 15px; 
-    border-top: 1px solid #000; 
-    padding-top: 8px; 
+
+  .paper-meta {
+    display: flex;
+    flex-direction: column;
+    margin-top: 15px;
+    border-top: 1px solid #000;
+    padding-top: 8px;
   }
 
-  .meta-row { 
-    display: flex; 
-    justify-content: space-between; 
-    font-size: 15px; 
+  .meta-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 15px;
     font-weight: bold;
-    margin-bottom: 4px; 
+    margin-bottom: 4px;
   }
-  
-  .section-header { 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: flex-end; 
-    border-bottom: 1px solid black; 
-    margin: 30px 0 15px; 
+
+  .paper-instructions {
+    margin: 20px 0 10px;
+    padding: 10px 0;
+    font-size: 15px;
+    border-bottom: 1px solid black;
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 1px solid black;
+    margin: 30px 0 15px;
     padding-bottom: 5px;
   }
 
@@ -135,34 +145,33 @@
   .marks-note { font-style: italic; font-size: 14px; }
 
   .question-list { padding-left: 30px; }
-  .question-item { 
-    display: flex; 
-    justify-content: space-between; 
-    margin-bottom: 18px; 
-    line-height: 1.6; 
+  .question-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    line-height: 1.6;
     font-size: 16px;
   }
 
   .q-content { flex: 1; padding-right: 30px; text-align: justify; }
   .q-marks { font-weight: bold; min-width: 50px; text-align: right; }
 
-  .paper-footer { 
-    display: flex; 
-    justify-content: space-between; 
-    margin-top: 80px; 
+  .paper-footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 80px;
     padding-bottom: 40px;
   }
 
-  .signature-line { 
-    border-top: 1px solid black; 
-    padding-top: 8px; 
-    width: 220px; 
-    text-align: center; 
-    font-size: 13px; 
+  .signature-line {
+    border-top: 1px solid black;
+    padding-top: 8px;
+    width: 220px;
+    text-align: center;
+    font-size: 13px;
     font-weight: bold;
   }
 
-  /* Print Optimization */
   @media print {
     .no-print { display: none !important; }
     body { background: white !important; padding: 0 !important; }
@@ -171,7 +180,6 @@
     @page { margin: 1cm; }
   }
 
-  /* Preview Actions Styling */
   .paper-actions {
     background: #f8fafc;
     border-bottom: 1px solid #e2e8f0;

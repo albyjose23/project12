@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_24_131242) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_28_123000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -25,9 +25,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_24_131242) do
 
   create_table "papers", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.string "duration"
     t.string "exam_type"
+    t.text "instructions"
     t.bigint "subject_id", null: false
     t.string "title"
+    t.integer "total_marks"
     t.datetime "updated_at", null: false
     t.index ["subject_id"], name: "index_papers_on_subject_id"
   end
@@ -36,10 +39,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_24_131242) do
     t.text "content"
     t.datetime "created_at", null: false
     t.string "difficulty"
+    t.string "entry_mode", default: "typed", null: false
     t.integer "marks"
     t.bigint "subject_id", null: false
     t.string "unit"
     t.datetime "updated_at", null: false
+    t.index ["entry_mode"], name: "index_questions_on_entry_mode"
     t.index ["subject_id"], name: "index_questions_on_subject_id"
   end
 

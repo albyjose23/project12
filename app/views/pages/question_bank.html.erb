@@ -12,116 +12,87 @@
       action_path: pages_manage_subjects_path %>
 
     <div class="app-content content-grid">
-      
-      <%# --- LEFT COLUMN: ADD NEW QUESTION FORM --- %>
+      <div class="marks-entry-grid">
+        <% Question.section_options.each do |section, label, attributes| %>
+          <article class="panel mark-panel">
+            <div class="panel-header">
+              <div>
+                <h3><%= label %> Questions</h3>
+                <p class="subtle-text">Add questions directly to Section <%= section %>.</p>
+              </div>
+              <span class="badge">Section <%= section %></span>
+            </div>
+
+            <%= form_with url: add_question_path, method: :post, local: true do |f| %>
+              <input type="hidden" name="marks" value="<%= attributes[:marks] %>">
+              <input type="hidden" name="difficulty" value="<%= attributes[:difficulty] %>">
+
+              <div class="field-grid">
+                <div class="field">
+                  <label for="subject_<%= section.downcase %>">Subject</label>
+                  <select id="subject_<%= section.downcase %>" name="subject_id" class="ui-select" required>
+                    <option value="">Select Subject</option>
+                    <% @subjects.each do |subject| %>
+                      <option value="<%= subject.id %>"><%= subject.name %> (<%= subject.code %>)</option>
+                    <% end %>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label for="unit_<%= section.downcase %>">Unit</label>
+                  <select id="unit_<%= section.downcase %>" name="unit" class="ui-select">
+                    <option value="1">Unit 1</option>
+                    <option value="2">Unit 2</option>
+                    <option value="3">Unit 3</option>
+                    <option value="4">Unit 4</option>
+                    <option value="5">Unit 5</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="field mt-4">
+                <label for="question_<%= section.downcase %>">Question Text</label>
+                <textarea id="question_<%= section.downcase %>" name="content" placeholder="Type the question content here..." class="ui-textarea" required rows="5"></textarea>
+              </div>
+
+              <div class="btn-row mt-6">
+                <button type="submit" class="btn">Save <%= label %> Question</button>
+              </div>
+            <% end %>
+          </article>
+        <% end %>
+      </div>
+
       <article class="panel">
         <div class="panel-header">
           <div>
-            <h3>Add New Question</h3>
-            <p class="subtle-text">Enter details manually or use CSV import.</p>
+            <h3>Bulk Import</h3>
+            <p class="subtle-text">Import many questions at once from CSV or DOCX.</p>
           </div>
-          <span class="badge">Input</span>
+          <span class="badge">Import</span>
         </div>
 
-        <%= form_with url: add_question_path, method: :post, local: true do |f| %>
-          <div class="field-grid">
-            <div class="field">
-              <label for="qb_subject">Subject</label>
-              <select id="qb_subject" name="subject_id" class="ui-select" required>
-                <option value="">Select Subject</option>
-                <% Subject.all.order(name: :asc).each do |s| %>
-                  <option value="<%= s.id %>"><%= s.name %> (<%= s.code %>)</option>
-                <% end %>
-              </select>
-            </div>
-
-            <div class="field">
-              <label for="qb_unit">Unit</label>
-              <select id="qb_unit" name="unit" class="ui-select">
-                <option value="1">Unit 1</option>
-                <option value="2">Unit 2</option>
-                <option value="3">Unit 3</option>
-                <option value="4">Unit 4</option>
-                <option value="5">Unit 5</option>
-              </select>
-            </div>
-
-            <div class="field">
-              <label for="qb_difficulty">Difficulty</label>
-              <select id="qb_difficulty" name="difficulty" class="ui-select">
-                <option value="Easy">Easy</option>
-                <option value="Medium">Medium</option>
-                <option value="Hard">Hard</option>
-              </select>
-            </div>
-
-            <div class="field">
-              <label for="qb_marks">Marks</label>
-              <input id="qb_marks" name="marks" type="number" value="10" class="ui-input">
-            </div>
-          </div>
-
-          <div class="field mt-4">
-            <label for="qb_question">Question Text</label>
-            <textarea id="qb_question" name="content" placeholder="Type the question content here..." class="ui-textarea" required rows="5"></textarea>
-          </div>
-
+        <div class="p-6">
+          <p class="subtle-text">Use `content` as the required header. You can supply `section`, `marks`, `difficulty`, and `unit`. Imported questions are separated from typed questions for easier editing and deletion.</p>
           <div class="btn-row mt-6">
-            <button type="submit" class="btn">Save Question</button>
-            <%= link_to "Import CSV", import_questions_page_path, class: "btn-ghost" %>
+            <%= link_to "Import CSV", import_questions_page_path, class: "btn" %>
           </div>
-        <% end %>
+        </div>
       </article>
 
-      <%# --- RIGHT COLUMN: MANAGE RECENT ENTRIES --- %>
-<article class="panel">
-  <div class="panel-header">
-    <div>
-      <h3>Recent Entries</h3>
-      <p class="subtle-text">Review, edit, or remove questions.</p>
-    </div>
-  </div>
+      <%= render "question_list",
+          title: "Typed Questions",
+          subtitle: "Questions added directly on this page.",
+          badge_text: "#{@typed_questions.count} Total",
+          questions: @typed_questions,
+          empty_message: "No typed questions found." %>
 
-  <div class="quick-list">
-    <% if Question.any? %>
-      <% Question.includes(:subject).order(created_at: :desc).limit(10).each do |q| %>
-        <div class="quick-item-manage">
-          <div class="item-body">
-            <div class="item-meta">
-              <span class="strong text-white"><%= q.subject.code %></span>
-              <span class="subtle-text">Unit <%= q.unit.presence || 'N/A' %></span>
-              <span class="badge" data-difficulty="<%= q.difficulty.downcase %>">
-                <%= q.difficulty %>
-              </span>
-            </div>
-            <div class="item-content text-white">
-              <%= truncate(q.content, length: 80) %>
-            </div>
-          </div>
-
-          <div class="item-actions">
-            <%# Link to Edit Page %>
-            <%= link_to edit_question_path(q), class: "action-icon edit", title: "Edit" do %>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
-            <% end %>
-            
-            <%# FIXED DELETE: Added turbo attributes to prevent Routing Error %>
-            <%= link_to delete_question_path(q), 
-                        data: { "turbo-method": :delete, "turbo-confirm": "Are you sure you want to delete this question?" }, 
-                        class: "action-icon delete", 
-                        title: "Delete" do %>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-            <% end %>
-          </div>
-        </div>
-      <% end %>
-    <% else %>
-      <div class="p-8 text-center muted">
-        <p>No questions found.</p>
-      </div>
-    <% end %>
-  </div>
-</article>
+      <%= render "question_list",
+          title: "Imported Questions",
+          subtitle: "Questions added through CSV or DOCX import.",
+          badge_text: "#{@imported_questions.count} Total",
+          questions: @imported_questions,
+          empty_message: "No imported questions found." %>
 
     </div>
   </main>
@@ -136,6 +107,15 @@
 <% end %>
 
 <style>
+  .marks-entry-grid {
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  .mark-panel {
+    margin-bottom: 0;
+  }
+
   /* Difficulty Badges */
   .badge[data-difficulty="easy"] { background: #dcfce7; color: #166534; }
   .badge[data-difficulty="medium"] { background: #fef9c3; color: #854d0e; }

@@ -6,24 +6,34 @@
         <h3>Edit Question</h3>
       </div>
       
-      <%= form_with url: update_question_path(@question), method: :patch, local: true do |f| %>
+      <%= form_with url: update_question_path(@question), method: :patch, local: true do %>
         <div class="p-6">
           <div class="field-grid">
             <div class="field">
               <label>Subject</label>
-              <%= f.collection_select :subject_id, Subject.all, :id, :name, {selected: @question.subject_id}, {class: "ui-select"} %>
-            </div>
-            <div class="field">
-              <label>Difficulty</label>
-              <select name="difficulty" class="ui-select">
-                <% ['Easy', 'Medium', 'Hard'].each do |d| %>
-                  <option value="<%= d %>" <%= 'selected' if @question.difficulty == d %>><%= d %></option>
+              <select name="subject_id" class="ui-select" required>
+                <% @subjects.each do |subject| %>
+                  <option value="<%= subject.id %>" <%= "selected" if subject.id == @question.subject_id %>>
+                    <%= subject.name %> (<%= subject.code %>)
+                  </option>
                 <% end %>
               </select>
             </div>
             <div class="field">
               <label>Unit</label>
               <input type="number" name="unit" value="<%= @question.unit %>" class="ui-input">
+            </div>
+          </div>
+
+          <div class="field mt-4">
+            <label>Question Section</label>
+            <div class="section-radio-grid">
+              <% Question.section_options.each do |section, label, attributes| %>
+                <label class="section-radio-card">
+                  <input type="radio" name="marks" value="<%= attributes[:marks] %>" <%= "checked" if @question.section_name == section %>>
+                  <span><strong><%= label %></strong> | Section <%= section %></span>
+                </label>
+              <% end %>
             </div>
           </div>
 
@@ -42,3 +52,20 @@
     </article>
   </main>
 </section>
+
+<style>
+  .section-radio-grid {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .section-radio-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.75rem;
+    background: #fff;
+  }
+</style>
