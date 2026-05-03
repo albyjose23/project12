@@ -7,177 +7,220 @@
   </div>
 
   <article class="paper-frame">
-    <%# --- Header Section --- %>
+    <div class="paper-top-band" aria-hidden="true"></div>
+
     <div class="paper-head">
-      <h1 class="institute-name">CHRIST COLLEGE OF SCIENCE AND MANAGEMENT</h1>
-      <h2 class="exam-title"><%= @paper.title.upcase %></h2>
-      <div class="paper-subhead">
-        <strong>Subject:</strong> <%= @paper.subject.name %> (<%= @paper.subject.code %>)
+      <div class="institution-brand">
+        <div class="brand-copy">
+          <div class="institution-name">CHRIST COLLEGE OF SCIENCE AND MANAGEMENT</div>
+          <div class="institution-detail">(Affiliated to Bengaluru North University, Recognized by Govt. of Karnataka)</div>
+          <div class="institution-detail">Hosur-Malur Main Road, Alambady, Malur, Karnataka - 563160</div>
+        </div>
+      </div>
+
+      <div class="exam-block">
+        <div class="exam-title"><%= @paper.title.to_s.upcase %></div>
+        <div class="exam-subject"><%= @paper.subject.name.to_s.upcase %></div>
       </div>
 
       <div class="paper-meta">
-        <div class="meta-row">
-          <span><strong>Dept:</strong> <%= @paper.subject.try(:department) || "Department of Science" %></span>
-          <span><strong>Exam Type:</strong> <%= @paper.try(:exam_type) || "Semester Examination" %></span>
-        </div>
-        <div class="meta-row">
-          <span><strong>Time:</strong> <%= @paper.duration.presence || "3 Hours" %></span>
-          <span><strong>Max Marks:</strong> <%= @paper.total_marks.presence || @paper.questions.sum(&:display_marks) %></span>
-        </div>
+        <span>Time: <%= paper_duration_text(@paper) %></span>
+        <span>Max Marks: <%= paper_total_marks_text(@paper) %></span>
       </div>
     </div>
 
     <% if @paper.instructions.present? %>
       <div class="paper-instructions">
-        <strong>Instructions:</strong> <%= @paper.instructions %>
+        <div class="paper-instructions-label">Instructions:</div>
+        <div class="instruction-text"><%= @paper.instructions %></div>
       </div>
     <% end %>
 
-    <%# --- SECTION A: 2 Marks --- %>
     <section class="paper-section">
-      <div class="section-header">
-        <h3>SECTION A - (2 Marks Each)</h3>
-        <span class="marks-note">Answer ALL questions</span>
+      <div class="section-title">Section- A</div>
+      <div class="section-note-row">
+        <div class="section-note">Answer all questions. Each question carries 2 marks.</div>
+        <div class="section-distribution"><%= paper_section_distribution(@section_a_questions.count, 2) %></div>
       </div>
       <ol class="question-list">
         <% @section_a_questions.each do |q| %>
           <li class="question-item">
-            <div class="q-content"><%= q.content %></div>
-            <div class="q-marks">[<%= q.display_marks %>]</div>
+            <div class="q-content"><%= h(paper_question_text(q)) %></div>
           </li>
         <% end %>
       </ol>
     </section>
 
-    <%# --- SECTION B: 6 Marks --- %>
     <section class="paper-section">
-      <div class="section-header">
-        <h3>SECTION B - (6 Marks Each)</h3>
-        <span class="marks-note">Answer any FIVE questions</span>
+      <div class="section-title">Section- B</div>
+      <div class="section-note-row">
+        <div class="section-note">Answer all questions. Each question carries 6 marks.</div>
+        <div class="section-distribution"><%= paper_section_distribution(@section_b_questions.count, 6) %></div>
       </div>
-      <ol class="question-list" start="<%= @section_a_questions.count + 1 %>">
+      <ol class="question-list">
         <% @section_b_questions.each do |q| %>
           <li class="question-item">
-            <div class="q-content"><%= q.content %></div>
-            <div class="q-marks">[<%= q.display_marks %>]</div>
+            <div class="q-content"><%= h(paper_question_text(q)) %></div>
           </li>
         <% end %>
       </ol>
     </section>
 
-    <%# --- SECTION C: 8 Marks --- %>
     <section class="paper-section">
-      <div class="section-header">
-        <h3>SECTION C - (8 Marks Each)</h3>
-        <span class="marks-note">Detailed / Analytical Questions</span>
+      <div class="section-title">Section- C</div>
+      <div class="section-note-row">
+        <div class="section-note">Answer all questions. Each question carries 8 marks.</div>
+        <div class="section-distribution"><%= paper_section_distribution(@section_c_questions.count, 8) %></div>
       </div>
-      <ol class="question-list" start="<%= @section_a_questions.count + @section_b_questions.count + 1 %>">
+      <ol class="question-list">
         <% @section_c_questions.each do |q| %>
           <li class="question-item">
-            <div class="q-content"><%= q.content %></div>
-            <div class="q-marks">[<%= q.display_marks %>]</div>
+            <div class="q-content"><%= h(paper_question_text(q)) %></div>
           </li>
         <% end %>
       </ol>
     </section>
-
-    <%# --- Footer Section --- %>
-    <div class="paper-footer">
-      <div class="signature-line">Subject Expert Signature</div>
-      <div class="signature-line">Controller of Examination</div>
-    </div>
   </article>
 </section>
 
 <style>
-  /* Professional Exam Paper Styling - No changes made to your styles */
   .paper-frame {
-    padding: 60px;
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 40px 48px 40px;
     background: white;
     color: black;
     font-family: "Times New Roman", Times, serif;
-    min-height: 297mm;
+  }
+
+  .paper-top-band {
+    height: 18px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #d4d4d8;
   }
 
   .paper-head {
     text-align: center;
-    border-bottom: 2px solid black;
-    margin-bottom: 25px;
-    padding-bottom: 10px;
+    margin-bottom: 22px;
   }
 
-  .institute-name { font-size: 26px; font-weight: bold; margin-bottom: 5px; }
-  .exam-title { font-size: 20px; margin-bottom: 10px; text-decoration: underline; }
+  .institution-brand {
+    display: flex;
+    justify-content: center;
+  }
+
+  .brand-copy {
+    text-align: center;
+    width: 100%;
+  }
+
+  .institution-name {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #000000;
+    letter-spacing: 0.02em;
+    max-width: 100%;
+    margin: 0 auto;
+    text-align: center;
+    word-break: break-word;
+  }
+
+  .institution-detail {
+    font-size: 12px;
+    line-height: 1.25;
+  }
+
+  .exam-block {
+    margin-top: 18px;
+  }
+
+  .exam-title,
+  .exam-subject {
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.5;
+  }
 
   .paper-meta {
     display: flex;
-    flex-direction: column;
-    margin-top: 15px;
-    border-top: 1px solid #000;
-    padding-top: 8px;
-  }
-
-  .meta-row {
-    display: flex;
     justify-content: space-between;
-    font-size: 15px;
-    font-weight: bold;
-    margin-bottom: 4px;
+    gap: 20px;
+    margin-top: 8px;
+    font-size: 17px;
+    font-weight: 700;
+    text-align: left;
   }
 
   .paper-instructions {
-    margin: 20px 0 10px;
-    padding: 10px 0;
+    margin: 0 0 20px;
     font-size: 15px;
-    border-bottom: 1px solid black;
+    line-height: 1.45;
+    text-align: left;
   }
 
-  .section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    border-bottom: 1px solid black;
-    margin: 30px 0 15px;
-    padding-bottom: 5px;
+  .paper-instructions-label {
+    font-weight: 700;
   }
 
-  .section-header h3 { font-size: 17px; font-weight: bold; margin: 0; }
-  .marks-note { font-style: italic; font-size: 14px; }
+  .instruction-text {
+    white-space: pre-wrap;
+  }
 
-  .question-list { padding-left: 30px; }
-  .question-item {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 18px;
-    line-height: 1.6;
+  .paper-section {
+    margin-top: 8px;
+  }
+
+  .section-title {
     font-size: 16px;
-  }
-
-  .q-content { flex: 1; padding-right: 30px; text-align: justify; }
-  .q-marks { font-weight: bold; min-width: 50px; text-align: right; }
-
-  .paper-footer {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 80px;
-    padding-bottom: 40px;
-  }
-
-  .signature-line {
-    border-top: 1px solid black;
-    padding-top: 8px;
-    width: 220px;
+    font-weight: 700;
+    margin: 12px 0 8px;
     text-align: center;
-    font-size: 13px;
-    font-weight: bold;
+  }
+
+  .section-note-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 6px;
+  }
+
+  .section-note,
+  .section-distribution {
+    font-size: 14px;
+    line-height: 1.4;
+    white-space: nowrap;
+    font-weight: 700;
+  }
+
+  .section-distribution {
+    text-align: right;
+  }
+
+  .question-list {
+    margin: 0;
+    padding-left: 26px;
+  }
+
+  .question-item {
+    margin-bottom: 8px;
+    line-height: 1.45;
+    font-size: 14px;
+    padding-left: 4px;
+  }
+
+  .q-content {
+    white-space: pre-wrap;
   }
 
   @media print {
     .no-print { display: none !important; }
     body { background: white !important; padding: 0 !important; }
     .print-shell { padding: 0 !important; margin: 0 !important; }
-    .paper-frame { box-shadow: none !important; width: 100% !important; padding: 40px !important; }
-    @page { margin: 1cm; }
+    .paper-frame { box-shadow: none !important; width: 100% !important; padding: 38px 40px 32px !important; }
+    @page { margin: 1.8cm 1cm 1.2cm; }
   }
 
   .paper-actions {

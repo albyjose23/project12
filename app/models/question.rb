@@ -16,6 +16,7 @@ class Question < ApplicationRecord
 
   scope :typed_entries, -> { where(entry_mode: "typed") }
   scope :imported_entries, -> { where(entry_mode: "imported") }
+  scope :for_import_batch, ->(batch_id) { imported_entries.where(import_batch_id: batch_id) }
 
   before_validation :normalize_section_fields
   before_validation :normalize_entry_mode
@@ -39,6 +40,10 @@ class Question < ApplicationRecord
 
   def entry_mode_label
     ENTRY_MODES.fetch(entry_mode, entry_mode.to_s.humanize)
+  end
+
+  def import_source_label
+    import_source_name.presence || "Imported File"
   end
 
   def self.attributes_for_section(section)

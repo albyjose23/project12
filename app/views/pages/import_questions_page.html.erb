@@ -34,7 +34,7 @@
             <div class="field">
               <label for="csv_file">Select CSV or Word File</label>
               <input type="file" name="file" id="csv_file" accept=".csv,.docx" class="ui-input" required>
-              <p class="subtle-text mt-2">Accepted files: <strong>.csv</strong> and <strong>.docx</strong>. CSV needs the <strong>content</strong> header. Word files can use headings like <strong>Unit 1</strong>, <strong>Unit: 1</strong>, <strong>Section A</strong>, or <strong>Section: A</strong>, followed by one question per line.</p>
+              <p class="subtle-text mt-2">Accepted files: <strong>.csv</strong> and <strong>.docx</strong>. CSV needs the <strong>content</strong> header. Word files can follow the college bank style with title lines, <strong>UNIT 1</strong>, <strong>SECTION A -2 Marks</strong>, <strong>SECTION B-6 Marks</strong>, and <strong>SECTION C-8 Marks</strong>. Multi-line program questions are merged correctly during import.</p>
             </div>
 
             <div class="btn-row">
@@ -69,20 +69,25 @@ content,section,unit
             <p class="subtle-text">Use DOCX with one question per line under each section.</p>
           </div>
         </div>
-        <div class="p-6">
+          <div class="p-6">
           <pre class="surface-inset p-4 rounded text-sm overflow-x-auto">
-Unit 1
-Section A
-What is a variable?
-Define an algorithm.
+VI SEM BCA
+PHP & MYSQL QUESTION BANK
 
-Unit 2
-Section B
-Explain recursion.
+UNIT 1
+SECTION A -2 Marks
+1.What is PHP?
+What is XAMPP?
 
-Unit 5
-Section C
-Solve the traveling salesman problem.</pre>
+SECTION B-6 Marks
+1.Explain the features of PHP.
+
+SECTION C-8 Marks
+Write a complete PHP program to:
+Connect to MySQL
+Create a table
+Insert records
+Display records</pre>
         </div>
       </article>
     </div>

@@ -1,8 +1,17 @@
 require 'csv'
 require 'rexml/document'
+require 'securerandom'
 require 'zip'
 
 class PagesController < ApplicationController
+  UNIT_WORD_MAP = {
+    "one" => "1",
+    "two" => "2",
+    "three" => "3",
+    "four" => "4",
+    "five" => "5"
+  }.freeze
+
   before_action :authenticate_user!, except: [ :login, :register ]
   before_action :redirect_if_authenticated, only: [ :login, :register ]
 
@@ -19,7 +28,7 @@ class PagesController < ApplicationController
   def question_bank
     @subjects = Subject.order(name: :asc)
     @typed_questions = Question.typed_entries.includes(:subject).order(created_at: :desc)
-    @imported_questions = Question.imported_entries.includes(:subject).order(created_at: :desc)
+    @imported_batches = grouped_import_batches
   end
 
   def manage_subjects
@@ -68,27 +77,40 @@ class PagesController < ApplicationController
   def create_paper
     @subject = Subject.find(params[:subject_id])
     section_counts = requested_section_counts
+    selected_units = requested_units
+    available_questions = filtered_questions_for_paper(@subject, selected_units)
     requested_total_marks = params[:total_marks].to_i
     generated_total_marks = calculate_total_marks(section_counts)
-    shortages = unavailable_sections(@subject, section_counts)
+    shortages = unavailable_sections(available_questions, section_counts)
+    selected_questions = select_questions_for_paper(available_questions, section_counts)
 
     if section_counts.values.sum <= 0
-      redirect_to pages_generate_paper_path, alert: "Enter at least one question count before generating the paper."
+      redirect_to_generate_paper(alert: "Enter at least one question count before generating the paper.", selected_units: selected_units)
+      return
+    end
+
+    if unit_filter_requested? && selected_units.empty?
+      redirect_to_generate_paper(alert: "Select at least one unit before generating the paper.", selected_units: selected_units)
       return
     end
 
     if requested_total_marks <= 0
-      redirect_to pages_generate_paper_path, alert: "Enter a valid total marks value."
+      redirect_to_generate_paper(alert: "Enter a valid total marks value.", selected_units: selected_units)
       return
     end
 
     if generated_total_marks != requested_total_marks
-      redirect_to pages_generate_paper_path, alert: "Total marks mismatch. The selected questions add up to #{generated_total_marks} marks."
+      redirect_to_generate_paper(alert: "Total marks mismatch. The selected questions add up to #{generated_total_marks} marks.", selected_units: selected_units)
       return
     end
 
     if shortages.any?
-      redirect_to pages_generate_paper_path, alert: shortages.join(", ")
+      redirect_to_generate_paper(alert: shortages.join(", "), selected_units: selected_units)
+      return
+    end
+
+    if selected_questions.values.flatten.size != section_counts.values.sum
+      redirect_to_generate_paper(alert: "Unable to build a paper from the available question bank for the selected units.", selected_units: selected_units)
       return
     end
 
@@ -102,12 +124,9 @@ class PagesController < ApplicationController
     )
 
     if @paper.save
-      questions_by_section = @subject.questions.to_a.group_by(&:section_name)
       ActiveRecord::Base.transaction do
-        section_counts.each do |section, count|
-          next if count <= 0
-
-          questions_by_section.fetch(section, []).sample(count).each do |question|
+        selected_questions.each_value do |questions|
+          questions.each do |question|
             PaperQuestion.create!(paper: @paper, question: question)
           end
         end
@@ -115,7 +134,7 @@ class PagesController < ApplicationController
 
       redirect_to view_paper_path(id: @paper.id)
     else
-      redirect_to pages_generate_paper_path, alert: "Failed to generate paper."
+      redirect_to_generate_paper(alert: "Failed to generate paper.", selected_units: selected_units)
     end
   end
 
@@ -125,8 +144,18 @@ class PagesController < ApplicationController
 
     if file.present?
       begin
-        import_rows(file).each do |row|
-          create_imported_question!(row, subject)
+        import_batch_id = SecureRandom.uuid
+        import_source_name = file.original_filename.to_s
+
+        ActiveRecord::Base.transaction do
+          import_rows(file).each do |row|
+            create_imported_question!(
+              row,
+              subject,
+              import_batch_id: import_batch_id,
+              import_source_name: import_source_name
+            )
+          end
         end
 
         redirect_to pages_question_bank_path, notice: "Questions imported successfully!"
@@ -180,7 +209,21 @@ class PagesController < ApplicationController
     redirect_to pages_question_bank_path, notice: "Question deleted successfully."
   end
 
-  def generate_paper; end
+  def delete_import_batch
+    batch_questions = Question.for_import_batch(params[:batch_id])
+
+    if batch_questions.exists?
+      file_name = batch_questions.first.import_source_label
+      batch_questions.destroy_all
+      redirect_to pages_question_bank_path, notice: "#{file_name} deleted successfully."
+    else
+      redirect_to pages_question_bank_path, alert: "Imported file not found."
+    end
+  end
+
+  def generate_paper
+    @selected_units = flash.key?(:selected_units) ? Array(flash[:selected_units]).map(&:to_s) : available_unit_options
+  end
 
   def generated_papers
     @papers = Paper.includes(:subject).order(created_at: :desc)
@@ -214,8 +257,8 @@ class PagesController < ApplicationController
     end
   end
 
-  def unavailable_sections(subject, section_counts)
-    available_counts = subject.questions.group(:marks).count
+  def unavailable_sections(questions, section_counts)
+    available_counts = questions.group_by(&:marks).transform_values(&:count)
 
     section_counts.filter_map do |section, count|
       next if count <= 0
@@ -269,36 +312,40 @@ class PagesController < ApplicationController
     rows = []
     current_unit = nil
     current_section = nil
+    current_question_lines = []
 
     extract_docx_paragraphs(file).each do |paragraph|
-      original_line = paragraph.to_s.strip
+      original_line = paragraph.fetch(:text).to_s.strip
       line = normalize_docx_line(original_line)
       next if line.blank?
 
       if (unit_match = docx_unit_heading_match(line))
+        append_docx_question!(rows, current_question_lines, current_section, current_unit)
+        current_question_lines = []
         current_unit = unit_match[1].strip
+        current_section = nil
         next
       end
 
       if (section_match = docx_section_heading_match(line))
+        append_docx_question!(rows, current_question_lines, current_section, current_unit)
+        current_question_lines = []
         current_section = section_match[1].upcase
         next
       end
 
-      content = normalize_docx_question(line)
-      next if content.blank?
+      next if current_unit.blank? || current_section.blank?
 
-      if current_section.blank?
-        raise ArgumentError, "Each Word question must come after a Section: A, B, or C line. Problem line: #{original_line.inspect}"
+      if docx_question_continuation?(line, paragraph, current_question_lines)
+        current_question_lines << line
+        next
       end
 
-      rows << {
-        "content" => content,
-        "section" => current_section,
-        "unit" => current_unit
-      }
+      append_docx_question!(rows, current_question_lines, current_section, current_unit)
+      current_question_lines = [ line ]
     end
 
+    append_docx_question!(rows, current_question_lines, current_section, current_unit)
     raise ArgumentError, "No questions were found in the Word file." if rows.empty?
 
     rows
@@ -309,7 +356,7 @@ class PagesController < ApplicationController
   end
 
   def docx_section_heading_match(line)
-    line.match(/\Asection(?:\s*[:\-]?\s*|\s+)([A-C])(?:\s*[:\-])?\z/i)
+    line.match(/\Asection\s*[:\-]?\s*([A-C])(?:\s*[-:]\s*(?:\d+\s*marks?)?)?\z/i)
   end
 
   def extract_docx_paragraphs(file)
@@ -325,7 +372,10 @@ class PagesController < ApplicationController
         REXML::XPath.each(paragraph, ".//w:t", { "w" => "http://schemas.openxmlformats.org/wordprocessingml/2006/main" }) do |node|
           text_parts << node.text.to_s
         end
-        paragraphs << text_parts.join
+        paragraphs << {
+          text: text_parts.join,
+          list_item: REXML::XPath.first(paragraph, ".//w:numPr", { "w" => "http://schemas.openxmlformats.org/wordprocessingml/2006/main" }).present?
+        }
       end
     end
 
@@ -343,10 +393,135 @@ class PagesController < ApplicationController
   end
 
   def normalize_docx_question(line)
-    line.gsub(/\A[\p{Space}\u2022\-\*\d\.\)\(]+\s*/u, "").strip
+    line
+      .gsub(/\A\d+\s*[\.\)]\s*[A-Za-z][\.\)]\s*/u, "")
+      .gsub(/\A\d+\s*[\.\)]\s*/u, "")
+      .gsub(/\A[\p{Space}\u2022\-\*\(\)]+\s*/u, "")
+      .strip
   end
 
-  def create_imported_question!(row, subject)
+  def docx_question_continuation?(line, paragraph, current_question_lines)
+    return false if current_question_lines.blank?
+
+    paragraph[:list_item] || current_question_lines.last.to_s.end_with?(":") || current_question_lines.first.to_s.end_with?(":")
+  end
+
+  def append_docx_question!(rows, question_lines, current_section, current_unit)
+    return if question_lines.blank? || current_section.blank?
+
+    content = question_lines.map { |line| normalize_docx_question(line) }.reject(&:blank?).join(" ").strip
+    return if content.blank?
+
+    rows << {
+      "content" => content,
+      "section" => current_section,
+      "unit" => current_unit
+    }
+  end
+
+  def select_questions_for_paper(questions, section_counts)
+    questions_by_section = questions.group_by(&:section_name)
+
+    section_counts.each_with_object({}) do |(section, count), selected|
+      selected[section] = balanced_section_questions(questions_by_section.fetch(section, []), count)
+    end
+  end
+
+  def balanced_section_questions(questions, count)
+    return [] if count <= 0
+
+    buckets = questions.group_by { |question| normalized_unit_value(question.unit) || question.unit.to_s.strip.presence || "General" }
+      .transform_values { |entries| entries.shuffle }
+    unit_order = buckets.keys.sort_by { |unit| unit_sort_key(unit) }.shuffle
+    selected = []
+
+    while selected.size < count
+      picked_in_round = false
+
+      unit_order.each do |unit|
+        next if buckets[unit].blank?
+
+        selected << buckets[unit].shift
+        picked_in_round = true
+        break if selected.size >= count
+      end
+
+      break unless picked_in_round
+    end
+
+    selected
+  end
+
+  def unit_sort_key(unit)
+    match = unit.to_s.match(/\d+/)
+    [ match ? 0 : 1, match ? match[0].to_i : unit.to_s.downcase ]
+  end
+
+  def requested_units
+    Array(params[:units])
+      .map { |value| normalized_unit_value(value) }
+      .select { |unit| available_unit_options.include?(unit) }
+      .uniq
+  end
+
+  def unit_filter_requested?
+    params[:unit_filter_present].present? || params.key?(:units)
+  end
+
+  def available_unit_options
+    %w[1 2 3 4 5]
+  end
+
+  def filtered_questions_for_paper(subject, selected_units)
+    questions = subject.questions.to_a
+    return questions if selected_units.empty?
+
+    questions.select do |question|
+      selected_units.include?(normalized_unit_value(question.unit))
+    end
+  end
+
+  def normalized_unit_value(unit)
+    text = unit.to_s.strip
+    return if text.blank?
+
+    digit_match = text.match(/\b([1-5])\b/)
+    return digit_match[1] if digit_match
+
+    UNIT_WORD_MAP.each do |word, number|
+      return number if text.downcase.include?(word)
+    end
+
+    nil
+  end
+
+  def redirect_to_generate_paper(alert:, selected_units:)
+    flash[:selected_units] = selected_units
+    redirect_to pages_generate_paper_path, alert: alert
+  end
+
+  def grouped_import_batches
+    Question.imported_entries
+      .includes(:subject)
+      .order(created_at: :desc)
+      .group_by { |question| question.import_batch_id.presence || "legacy-imports" }
+      .map do |batch_id, questions|
+        first_question = questions.first
+
+        {
+          batch_id: (batch_id == "legacy-imports" ? nil : batch_id),
+          file_name: batch_id == "legacy-imports" ? "Older Imported Questions" : first_question.import_source_label,
+          question_count: questions.size,
+          subject_codes: questions.map { |question| question.subject.code }.uniq.sort,
+          imported_at: questions.max_by(&:created_at)&.created_at,
+          legacy: batch_id == "legacy-imports"
+        }
+      end
+      .sort_by { |batch| batch[:imported_at] || Time.at(0) }
+      .reverse
+  end
+
+  def create_imported_question!(row, subject, import_batch_id:, import_source_name:)
     section_attributes = Question.attributes_for_section(row["section"])
     section = Question.resolve_section(
       section: row["section"],
@@ -361,7 +536,9 @@ class PagesController < ApplicationController
       marks: resolved_attributes[:marks] || section_attributes[:marks] || row["marks"],
       unit: row["unit"],
       subject: subject,
-      entry_mode: "imported"
+      entry_mode: "imported",
+      import_batch_id: import_batch_id,
+      import_source_name: import_source_name
     )
   end
 end

@@ -87,11 +87,11 @@
           questions: @typed_questions,
           empty_message: "No typed questions found." %>
 
-      <%= render "question_list",
+      <%= render "import_batch_list",
           title: "Imported Questions",
           subtitle: "Questions added through CSV or DOCX import.",
-          badge_text: "#{@imported_questions.count} Total",
-          questions: @imported_questions,
+          badge_text: "#{@imported_batches.count} Files",
+          import_batches: @imported_batches,
           empty_message: "No imported questions found." %>
 
     </div>

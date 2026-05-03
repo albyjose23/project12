@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_28_123000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_03_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -40,11 +40,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_28_123000) do
     t.datetime "created_at", null: false
     t.string "difficulty"
     t.string "entry_mode", default: "typed", null: false
+    t.string "import_batch_id"
+    t.string "import_source_name"
     t.integer "marks"
     t.bigint "subject_id", null: false
     t.string "unit"
     t.datetime "updated_at", null: false
     t.index ["entry_mode"], name: "index_questions_on_entry_mode"
+    t.index ["import_batch_id"], name: "index_questions_on_import_batch_id"
     t.index ["subject_id"], name: "index_questions_on_subject_id"
   end
 

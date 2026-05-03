@@ -57,12 +57,14 @@
             </div>
           </div>
 
+          <% selected_units = Array(@selected_units).map(&:to_s) %>
+
           <div class="list-grid">
             <div class="panel">
               <div class="panel-headline p-4">
                 <div>
                   <h4>Question Selection</h4>
-                  <p class="subtle-text">Choose exactly how many questions you want from each marks section.</p>
+                  <p class="subtle-text">Choose how many questions you want from each section. The generator now spreads selection across available units instead of picking from one random unit only.</p>
                 </div>
               </div>
 
@@ -80,6 +82,34 @@
                   <input id="section_c_count" name="section_c_count" type="number" class="ui-input" value="2" min="0">
                 </div>
                 <p class="subtle-text"> The entered marks must be matching with total marks .</p>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-headline p-4">
+                <div>
+                  <h4>Unit Filter</h4>
+                  <p class="subtle-text">Tick the units to include. The generated paper will only use questions from the checked units.</p>
+                </div>
+              </div>
+
+              <div class="p-4">
+                <input type="hidden" name="unit_filter_present" value="1">
+
+                <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <% (1..5).each do |unit_number| %>
+                    <% unit = unit_number.to_s %>
+                    <label class="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700">
+                      <input
+                        type="checkbox"
+                        name="units[]"
+                        value="<%= unit %>"
+                        class="h-4 w-4"
+                        <%= "checked" if selected_units.include?(unit) %>>
+                      <span>Unit <%= unit %></span>
+                    </label>
+                  <% end %>
+                </div>
               </div>
             </div>
 
