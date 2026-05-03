@@ -210,7 +210,7 @@ class PagesController < ApplicationController
   end
 
   def delete_import_batch
-    batch_questions = Question.for_import_batch(params[:batch_id])
+    batch_questions = imported_questions_for_group(params[:group_key] || params[:batch_id])
 
     if batch_questions.exists?
       file_name = batch_questions.first.import_source_label
@@ -504,17 +504,16 @@ class PagesController < ApplicationController
     Question.imported_entries
       .includes(:subject)
       .order(created_at: :desc)
-      .group_by { |question| question.import_batch_id.presence || "legacy-imports" }
-      .map do |batch_id, questions|
+      .group_by { |question| import_group_key_for(question) }
+      .map do |group_key, questions|
         first_question = questions.first
 
         {
-          batch_id: (batch_id == "legacy-imports" ? nil : batch_id),
-          file_name: batch_id == "legacy-imports" ? "Older Imported Questions" : first_question.import_source_label,
+          group_key: group_key,
+          file_name: import_group_label_for(first_question),
           question_count: questions.size,
           subject_codes: questions.map { |question| question.subject.code }.uniq.sort,
-          imported_at: questions.max_by(&:created_at)&.created_at,
-          legacy: batch_id == "legacy-imports"
+          imported_at: questions.max_by(&:created_at)&.created_at
         }
       end
       .sort_by { |batch| batch[:imported_at] || Time.at(0) }
@@ -540,5 +539,33 @@ class PagesController < ApplicationController
       import_batch_id: import_batch_id,
       import_source_name: import_source_name
     )
+  end
+
+  def import_group_key_for(question)
+    if question.import_batch_id.present?
+      "batch:#{question.import_batch_id}"
+    elsif question.import_source_name.present?
+      "source:#{question.import_source_name}"
+    else
+      "legacy:#{question.id}"
+    end
+  end
+
+  def import_group_label_for(question)
+    question.import_source_label
+  end
+
+  def imported_questions_for_group(group_key)
+    return Question.none if group_key.blank?
+
+    if group_key.start_with?("batch:")
+      Question.for_import_batch(group_key.delete_prefix("batch:"))
+    elsif group_key.start_with?("source:")
+      Question.imported_entries.where(import_batch_id: nil, import_source_name: group_key.delete_prefix("source:"))
+    elsif group_key.start_with?("legacy:")
+      Question.imported_entries.where(id: group_key.delete_prefix("legacy:"))
+    else
+      Question.none
+    end
   end
 end

@@ -27,7 +27,7 @@ patch 'update_subject/:id', to: 'pages#update_subject', as: :update_subject
 get    'edit_question/:id', to: 'pages#edit_question', as: :edit_question
 patch  'update_question/:id', to: 'pages#update_question', as: :update_question
 delete 'delete_question/:id', to: 'pages#delete_question', as: :delete_question
-delete 'delete_import_batch/:batch_id', to: 'pages#delete_import_batch', as: :delete_import_batch
+delete 'delete_import_batch', to: 'pages#delete_import_batch', as: :delete_import_batch
 
   # --- CSV IMPORT SECTION (FIXED) ---
   # The GET route for the upload screen

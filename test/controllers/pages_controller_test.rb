@@ -216,7 +216,7 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_difference("Question.count", -2) do
-      delete delete_import_batch_url(batch_id: "batch-delete")
+      delete delete_import_batch_url(group_key: "batch:batch-delete")
     end
 
     assert_redirected_to pages_question_bank_url
@@ -275,12 +275,58 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
     )
 
     assert_difference("Question.count", -1) do
-      delete delete_import_batch_url(batch_id: first_batch)
+      delete delete_import_batch_url(group_key: "batch:#{first_batch}")
     end
 
     assert_redirected_to pages_question_bank_url
     assert_equal 0, Question.for_import_batch(first_batch).count
     assert_equal 1, Question.for_import_batch(second_batch).count
+  end
+
+  test "question bank shows delete icon for imported files without batch id" do
+    sign_in
+    subject = Subject.create!(name: "Data Structures", code: "CS101", department: "BCA", semester: "Semester 1")
+
+    Question.create!(
+      content: "Legacy imported question",
+      difficulty: "Easy",
+      marks: 2,
+      unit: "1",
+      subject: subject,
+      entry_mode: "imported",
+      import_batch_id: nil,
+      import_source_name: "legacy.csv"
+    )
+
+    get pages_question_bank_url
+
+    assert_response :success
+    assert_match CGI.escapeHTML(delete_import_batch_path(group_key: "source:legacy.csv")), response.body
+  end
+
+  test "should delete imported file by source name when batch id is missing" do
+    sign_in
+    subject = Subject.create!(name: "Data Structures", code: "CS101", department: "BCA", semester: "Semester 1")
+
+    2.times do |index|
+      Question.create!(
+        content: "Legacy imported question #{index}",
+        difficulty: "Easy",
+        marks: 2,
+        unit: "1",
+        subject: subject,
+        entry_mode: "imported",
+        import_batch_id: nil,
+        import_source_name: "legacy.csv"
+      )
+    end
+
+    assert_difference("Question.count", -2) do
+      delete delete_import_batch_url(group_key: "source:legacy.csv")
+    end
+
+    assert_redirected_to pages_question_bank_url
+    assert_equal 0, Question.imported_entries.where(import_batch_id: nil, import_source_name: "legacy.csv").count
   end
 
   test "should import questions from docx" do
