@@ -335,8 +335,9 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
     docx = build_docx(<<~TEXT)
       Unit: 2
       Section: B
-      Explain recursion.
       1. Explain divide and conquer.
+      This answer should include recurrence relations. It can span lines.
+      2. Explain recursion.
     TEXT
 
     post import_questions_url, params: {
@@ -350,25 +351,89 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to pages_question_bank_url
     questions = Question.order(:created_at).last(2)
-    assert_equal [ "Explain recursion.", "Explain divide and conquer." ], questions.map(&:content)
-    assert_equal [ "2", "2" ], questions.map(&:unit)
+    assert_equal(
+      [
+        "Explain divide and conquer. This answer should include recurrence relations. It can span lines.",
+        "Explain recursion."
+      ],
+      questions.map(&:content)
+    )
+    assert_equal [ "Unit 2", "Unit 2" ], questions.map(&:unit)
     assert_equal [ 6, 6 ], questions.map(&:marks)
   end
 
-  test "should import questions from teacher style docx headings" do
+  test "should import docx when section c questions are in a single paragraph" do
+    sign_in
+    subject = Subject.create!(name: "Database Systems", code: "CS105", department: "BCA", semester: "Semester 4")
+    docx = build_docx_paragraphs([
+      "UNIT 2:",
+      "Section C - 8 Marks",
+      "1. Explain normalization in detail. 2. Explain indexing with example. 3. Explain transactions and ACID properties."
+    ])
+
+    post import_questions_url, params: {
+      subject_id: subject.id,
+      file: build_uploaded_file(
+        docx,
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        original_filename: "section-c-single-paragraph.docx"
+      )
+    }
+
+    assert_redirected_to pages_question_bank_url
+    questions = Question.order(:created_at).last(3)
+    assert_equal(
+      [
+        "Explain normalization in detail.",
+        "Explain indexing with example.",
+        "Explain transactions and ACID properties."
+      ],
+      questions.map(&:content)
+    )
+    assert_equal [ 8, 8, 8 ], questions.map(&:marks)
+    assert_equal [ "Unit 2", "Unit 2", "Unit 2" ], questions.map(&:unit)
+  end
+
+  test "should import docx with bracket numbering and leading spaces" do
+    sign_in
+    subject = Subject.create!(name: "C Programming", code: "CS106", department: "BCA", semester: "Semester 1")
+    docx = build_docx_paragraphs([
+      "UNIT I",
+      "Section A - 2 Marks",
+      " 1 ) What is an algorithm?",
+      " 2 . What is a flowchart?"
+    ])
+
+    post import_questions_url, params: {
+      subject_id: subject.id,
+      file: build_uploaded_file(
+        docx,
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        original_filename: "flexible-numbering.docx"
+      )
+    }
+
+    assert_redirected_to pages_question_bank_url
+    questions = Question.order(:created_at).last(2)
+    assert_equal [ "What is an algorithm?", "What is a flowchart?" ], questions.map(&:content)
+    assert_equal [ "Unit 1", "Unit 1" ], questions.map(&:unit)
+    assert_equal [ 2, 2 ], questions.map(&:marks)
+  end
+
+  test "should import questions from teacher style docx headings with numbered lines" do
     sign_in
     subject = Subject.create!(name: "Programming", code: "CS103", department: "BCA", semester: "Semester 1")
     docx = build_docx(<<~TEXT)
       Unit One
       Section A
-      What is a program?
-      What is an interpreter?
+      1. What is a program?
+      2. What is an interpreter?
 
       Section B
-      Explain compilation.
+      1. Explain compilation.
 
       Section C
-      Design a simple calculator flow.
+      1. Design a simple calculator flow.
     TEXT
 
     post import_questions_url, params: {
@@ -391,8 +456,46 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
       ],
       questions.map(&:content)
     )
-    assert_equal [ "One", "One", "One", "One" ], questions.map(&:unit)
+    assert_equal [ "Unit 1", "Unit 1", "Unit 1", "Unit 1" ], questions.map(&:unit)
     assert_equal [ 2, 2, 6, 8 ], questions.map(&:marks)
+  end
+
+  test "should import docx only when numbered questions appear inside the section" do
+    sign_in
+    subject = Subject.create!(name: "Data Structures", code: "CS107", department: "BCA", semester: "Semester 2")
+    docx = build_docx(<<~TEXT)
+      Unit One
+      Section A
+      What is a stack?
+      What is a queue?
+
+      Section B
+      Explain linked lists.
+
+      Section C
+      Design a tree traversal algorithm.
+      1. Build a binary tree traversal algorithm.
+    TEXT
+
+    post import_questions_url, params: {
+      subject_id: subject.id,
+      file: build_uploaded_file(
+        docx,
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        original_filename: "teacher-questions-unnumbered.docx"
+      )
+    }
+
+    assert_redirected_to pages_question_bank_url
+    questions = Question.order(:created_at).last(1)
+    assert_equal(
+      [
+        "Design a tree traversal algorithm. Build a binary tree traversal algorithm."
+      ],
+      questions.map(&:content)
+    )
+    assert_equal [ "Unit 1" ], questions.map(&:unit)
+    assert_equal [ 8 ], questions.map(&:marks)
   end
 
   test "should import questions from docx with flexible section heading formats" do
@@ -401,13 +504,13 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
     docx = build_docx(<<~TEXT)
       Unit 3
       SECTION : A
-      What is a protocol?
+      1. What is a protocol?
 
       Section-B
-      Explain OSI model.
+      1. Explain OSI model.
 
       Section C:
-      Design a subnetting plan.
+      1. Design a subnetting plan.
     TEXT
 
     post import_questions_url, params: {
@@ -441,14 +544,14 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
       UNIT 1
       SECTION A -2 Marks
       1.What are keywords? Give an example.
-      What is PHP?
-      List any two features of PHP
+      2. What is PHP?
+      3. List any two features of PHP
       SECTION C-8 Marks
-      Write a complete PHP program to:
-      Connect to MySQL
-      Create a table
-      Insert records
-      Display records
+      1. Write a complete PHP program to:
+      Connect to MySQL.
+      Create a table.
+      Insert records.
+      Display records.
     TEXT
 
     post import_questions_url, params: {
@@ -467,15 +570,15 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
         "What are keywords? Give an example.",
         "What is PHP?",
         "List any two features of PHP",
-        "Write a complete PHP program to: Connect to MySQL Create a table Insert records Display records"
+        "Write a complete PHP program to: Connect to MySQL. Create a table. Insert records. Display records."
       ],
       questions.map(&:content)
     )
-    assert_equal [ "1", "1", "1", "1" ], questions.map(&:unit)
+    assert_equal [ "Unit 1", "Unit 1", "Unit 1", "Unit 1" ], questions.map(&:unit)
     assert_equal [ 2, 2, 2, 8 ], questions.map(&:marks)
   end
 
-  test "should generate a paper with balanced unit coverage inside each section" do
+  test "should generate a paper with random filtered questions across selected units" do
     sign_in
     subject = Subject.create!(name: "Operating Systems", code: "BCA501", department: "BCA", semester: "Semester 5")
 
@@ -501,8 +604,8 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
 
     questions = paper.questions
     assert_equal 6, questions.count
-    assert_equal 3, questions.select { |question| question.section_name == "A" }.map(&:unit).uniq.size
-    assert_equal 2, questions.select { |question| question.section_name == "B" }.map(&:unit).uniq.size
+    assert_equal 3, questions.select { |question| question.section_name == "A" }.count
+    assert_equal 2, questions.select { |question| question.section_name == "B" }.count
     assert_equal 1, questions.select { |question| question.section_name == "C" }.count
   end
 
@@ -535,6 +638,53 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ "1", "2" ], paper.questions.map(&:unit).uniq.sort
   end
 
+  test "should generate 8 mark questions from only the two selected imported units" do
+    sign_in
+    subject = Subject.create!(name: "Microprocessors", code: "BCA503", department: "BCA", semester: "Semester 5")
+    docx = build_docx(<<~TEXT)
+      UNIT 1
+      SECTION C-8 Marks
+      1. Design an 8086 assembly routine.
+
+      UNIT 2
+      SECTION C-8 Marks
+      1. Explain memory segmentation in detail.
+
+      UNIT 3
+      SECTION C-8 Marks
+      1. Explain interrupt handling in 8086.
+    TEXT
+
+    post import_questions_url, params: {
+      subject_id: subject.id,
+      file: build_uploaded_file(
+        docx,
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        original_filename: "microprocessors-section-c.docx"
+      )
+    }
+
+    assert_redirected_to pages_question_bank_url
+
+    post create_paper_url, params: {
+      title: "Section C Only",
+      exam_type: "Model Exam",
+      subject_id: subject.id,
+      duration: "3 Hours",
+      total_marks: 16,
+      section_a_count: 0,
+      section_b_count: 0,
+      section_c_count: 2,
+      unit_filter_present: "1",
+      units: [ "1", "2" ]
+    }
+
+    paper = Paper.order(:created_at).last
+    assert_redirected_to view_paper_url(id: paper.id)
+    assert_equal [ 8, 8 ], paper.questions.order(:id).map(&:marks)
+    assert_equal [ "Unit 1", "Unit 2" ], paper.questions.map(&:unit).uniq.sort
+  end
+
   private
 
   def sign_in
@@ -561,6 +711,13 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
   end
 
   def build_docx(text)
+    build_docx_paragraphs(text.each_line.filter_map do |line|
+      stripped = line.strip
+      stripped.presence
+    end)
+  end
+
+  def build_docx_paragraphs(paragraphs)
     buffer = Zip::OutputStream.write_buffer do |zip|
       zip.put_next_entry("[Content_Types].xml")
       zip.write(<<~XML)
@@ -581,19 +738,17 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
       XML
 
       zip.put_next_entry("word/document.xml")
-      zip.write(docx_document_xml(text))
+      zip.write(docx_document_xml(paragraphs))
     end
 
     buffer.string
   end
 
-  def docx_document_xml(text)
-    body = text.each_line.map do |line|
-      next if line.strip.empty?
-
-      escaped = CGI.escapeHTML(line.strip)
+  def docx_document_xml(paragraphs)
+    body = Array(paragraphs).map do |paragraph|
+      escaped = CGI.escapeHTML(paragraph.to_s)
       "<w:p><w:r><w:t>#{escaped}</w:t></w:r></w:p>"
-    end.compact.join
+    end.join
 
     <<~XML
       <?xml version="1.0" encoding="UTF-8" standalone="yes"?>

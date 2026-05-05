@@ -51,6 +51,39 @@ class Question < ApplicationRecord
     normalized_section ? SECTION_RULES.fetch(normalized_section).dup : {}
   end
 
+  def self.normalize_unit_value(unit)
+    text = unit.to_s.strip
+    return if text.blank?
+
+    digit_match = text.match(/\b(\d+)\b/)
+    return digit_match[1] if digit_match
+
+    compact_text = text.downcase.gsub(/[^a-z]/, "")
+
+    {
+      "one" => "1",
+      "two" => "2",
+      "three" => "3",
+      "four" => "4",
+      "five" => "5",
+      "six" => "6",
+      "seven" => "7",
+      "eight" => "8",
+      "nine" => "9",
+      "ten" => "10",
+      "i" => "1",
+      "ii" => "2",
+      "iii" => "3",
+      "iv" => "4",
+      "v" => "5",
+      "vi" => "6",
+      "vii" => "7",
+      "viii" => "8",
+      "ix" => "9",
+      "x" => "10"
+    }[compact_text]
+  end
+
   def self.resolve_section(section: nil, marks: nil, difficulty: nil)
     normalized_section = section.to_s.strip.upcase
     return normalized_section if SECTION_RULES.key?(normalized_section)

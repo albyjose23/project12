@@ -34,7 +34,7 @@
             <div class="field">
               <label for="csv_file">Select CSV or Word File</label>
               <input type="file" name="file" id="csv_file" accept=".csv,.docx" class="ui-input" required>
-              <p class="subtle-text mt-2">Accepted files: <strong>.csv</strong> and <strong>.docx</strong>. CSV needs the <strong>content</strong> header. Word files can follow the college bank style with title lines, <strong>UNIT 1</strong>, <strong>SECTION A -2 Marks</strong>, <strong>SECTION B-6 Marks</strong>, and <strong>SECTION C-8 Marks</strong>. Multi-line program questions are merged correctly during import.</p>
+              <p class="subtle-text mt-2">Accepted files: <strong>.csv</strong> and <strong>.docx</strong>. CSV needs the <strong>content</strong> header. In Word files, questions must sit under headings like <strong>UNIT 1</strong> and <strong>SECTION A</strong>, and each new question must start with a numbered line like <strong>1.</strong>. Multi-line question bodies are preserved until the next numbered line or heading.</p>
             </div>
 
             <div class="btn-row">
@@ -66,7 +66,7 @@ content,section,unit
         <div class="panel-header">
           <div>
             <h3>Expected Word Format</h3>
-            <p class="subtle-text">Use DOCX with one question per line under each section.</p>
+            <p class="subtle-text">Use DOCX with numbered question starts under each section.</p>
           </div>
         </div>
           <div class="p-6">
@@ -77,13 +77,13 @@ PHP & MYSQL QUESTION BANK
 UNIT 1
 SECTION A -2 Marks
 1.What is PHP?
-What is XAMPP?
+2.What is XAMPP?
 
 SECTION B-6 Marks
 1.Explain the features of PHP.
 
 SECTION C-8 Marks
-Write a complete PHP program to:
+1.Write a complete PHP program to:
 Connect to MySQL
 Create a table
 Insert records

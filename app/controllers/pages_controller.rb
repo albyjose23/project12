@@ -4,14 +4,6 @@ require 'securerandom'
 require 'zip'
 
 class PagesController < ApplicationController
-  UNIT_WORD_MAP = {
-    "one" => "1",
-    "two" => "2",
-    "three" => "3",
-    "four" => "4",
-    "five" => "5"
-  }.freeze
-
   before_action :authenticate_user!, except: [ :login, :register ]
   before_action :redirect_if_authenticated, only: [ :login, :register ]
 
@@ -309,54 +301,10 @@ class PagesController < ApplicationController
   end
 
   def parse_docx_rows(file)
-    rows = []
-    current_unit = nil
-    current_section = nil
-    current_question_lines = []
-
-    extract_docx_paragraphs(file).each do |paragraph|
-      original_line = paragraph.fetch(:text).to_s.strip
-      line = normalize_docx_line(original_line)
-      next if line.blank?
-
-      if (unit_match = docx_unit_heading_match(line))
-        append_docx_question!(rows, current_question_lines, current_section, current_unit)
-        current_question_lines = []
-        current_unit = unit_match[1].strip
-        current_section = nil
-        next
-      end
-
-      if (section_match = docx_section_heading_match(line))
-        append_docx_question!(rows, current_question_lines, current_section, current_unit)
-        current_question_lines = []
-        current_section = section_match[1].upcase
-        next
-      end
-
-      next if current_unit.blank? || current_section.blank?
-
-      if docx_question_continuation?(line, paragraph, current_question_lines)
-        current_question_lines << line
-        next
-      end
-
-      append_docx_question!(rows, current_question_lines, current_section, current_unit)
-      current_question_lines = [ line ]
-    end
-
-    append_docx_question!(rows, current_question_lines, current_section, current_unit)
+    rows = QuestionBankParser.parse(extract_docx_paragraphs(file))
     raise ArgumentError, "No questions were found in the Word file." if rows.empty?
 
     rows
-  end
-
-  def docx_unit_heading_match(line)
-    line.match(/\Aunit(?:\s*[:\-]\s*|\s+)(.+)\z/i)
-  end
-
-  def docx_section_heading_match(line)
-    line.match(/\Asection\s*[:\-]?\s*([A-C])(?:\s*[-:]\s*(?:\d+\s*marks?)?)?\z/i)
   end
 
   def extract_docx_paragraphs(file)
@@ -369,92 +317,29 @@ class PagesController < ApplicationController
       xml = REXML::Document.new(document_entry.get_input_stream.read)
       REXML::XPath.each(xml, "//w:body/w:p", { "w" => "http://schemas.openxmlformats.org/wordprocessingml/2006/main" }) do |paragraph|
         text_parts = []
-        REXML::XPath.each(paragraph, ".//w:t", { "w" => "http://schemas.openxmlformats.org/wordprocessingml/2006/main" }) do |node|
-          text_parts << node.text.to_s
+        paragraph.elements.each(".//*") do |node|
+          case node.name
+          when "t"
+            text_parts << node.text.to_s
+          when "tab"
+            text_parts << " "
+          when "br", "cr"
+            text_parts << " "
+          end
         end
-        paragraphs << {
-          text: text_parts.join,
-          list_item: REXML::XPath.first(paragraph, ".//w:numPr", { "w" => "http://schemas.openxmlformats.org/wordprocessingml/2006/main" }).present?
-        }
+        paragraph_text = text_parts.join
+        paragraphs << paragraph_text if paragraph_text.present?
       end
     end
 
     paragraphs
   end
 
-  def normalize_docx_line(line)
-    line.to_s
-      .unicode_normalize(:nfkc)
-      .tr("\u00A0\u2007\u202F", "   ")
-      .delete("\u200B\u200C\u200D\u2060\uFEFF")
-      .tr("\u2013\u2014\u2212", "---")
-      .gsub(/[[:space:]]+/, " ")
-      .strip
-  end
-
-  def normalize_docx_question(line)
-    line
-      .gsub(/\A\d+\s*[\.\)]\s*[A-Za-z][\.\)]\s*/u, "")
-      .gsub(/\A\d+\s*[\.\)]\s*/u, "")
-      .gsub(/\A[\p{Space}\u2022\-\*\(\)]+\s*/u, "")
-      .strip
-  end
-
-  def docx_question_continuation?(line, paragraph, current_question_lines)
-    return false if current_question_lines.blank?
-
-    paragraph[:list_item] || current_question_lines.last.to_s.end_with?(":") || current_question_lines.first.to_s.end_with?(":")
-  end
-
-  def append_docx_question!(rows, question_lines, current_section, current_unit)
-    return if question_lines.blank? || current_section.blank?
-
-    content = question_lines.map { |line| normalize_docx_question(line) }.reject(&:blank?).join(" ").strip
-    return if content.blank?
-
-    rows << {
-      "content" => content,
-      "section" => current_section,
-      "unit" => current_unit
-    }
-  end
-
   def select_questions_for_paper(questions, section_counts)
-    questions_by_section = questions.group_by(&:section_name)
-
-    section_counts.each_with_object({}) do |(section, count), selected|
-      selected[section] = balanced_section_questions(questions_by_section.fetch(section, []), count)
-    end
-  end
-
-  def balanced_section_questions(questions, count)
-    return [] if count <= 0
-
-    buckets = questions.group_by { |question| normalized_unit_value(question.unit) || question.unit.to_s.strip.presence || "General" }
-      .transform_values { |entries| entries.shuffle }
-    unit_order = buckets.keys.sort_by { |unit| unit_sort_key(unit) }.shuffle
-    selected = []
-
-    while selected.size < count
-      picked_in_round = false
-
-      unit_order.each do |unit|
-        next if buckets[unit].blank?
-
-        selected << buckets[unit].shift
-        picked_in_round = true
-        break if selected.size >= count
-      end
-
-      break unless picked_in_round
-    end
-
-    selected
-  end
-
-  def unit_sort_key(unit)
-    match = unit.to_s.match(/\d+/)
-    [ match ? 0 : 1, match ? match[0].to_i : unit.to_s.downcase ]
+    QuestionPaperGenerator.new(
+      questions: questions,
+      selected_units: requested_units
+    ).build(section_counts)
   end
 
   def requested_units
@@ -482,17 +367,7 @@ class PagesController < ApplicationController
   end
 
   def normalized_unit_value(unit)
-    text = unit.to_s.strip
-    return if text.blank?
-
-    digit_match = text.match(/\b([1-5])\b/)
-    return digit_match[1] if digit_match
-
-    UNIT_WORD_MAP.each do |word, number|
-      return number if text.downcase.include?(word)
-    end
-
-    nil
+    Question.normalize_unit_value(unit)
   end
 
   def redirect_to_generate_paper(alert:, selected_units:)
@@ -530,7 +405,7 @@ class PagesController < ApplicationController
     resolved_attributes = Question.attributes_for_section(section)
 
     Question.create!(
-      content: row["content"],
+      content: row["content"].presence || row["text"].presence,
       difficulty: resolved_attributes[:difficulty] || section_attributes[:difficulty] || row["difficulty"],
       marks: resolved_attributes[:marks] || section_attributes[:marks] || row["marks"],
       unit: row["unit"],

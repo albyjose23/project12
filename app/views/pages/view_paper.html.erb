@@ -11,11 +11,7 @@
 
     <div class="paper-head">
       <div class="institution-brand">
-        <div class="brand-copy">
-          <div class="institution-name">CHRIST COLLEGE OF SCIENCE AND MANAGEMENT</div>
-          <div class="institution-detail">(Affiliated to Bengaluru North University, Recognized by Govt. of Karnataka)</div>
-          <div class="institution-detail">Hosur-Malur Main Road, Alambady, Malur, Karnataka - 563160</div>
-        </div>
+        <%= image_tag "logo.png", alt: "College Logo", class: "institution-logo" %>
       </div>
 
       <div class="exam-block">
@@ -108,32 +104,16 @@
   .institution-brand {
     display: flex;
     justify-content: center;
+    align-items: center;
+    margin: 0 auto 18px;
   }
 
-  .brand-copy {
-    text-align: center;
-    width: 100%;
-  }
-
-  .institution-name {
-    font-size: 22px;
-    font-weight: 700;
-    line-height: 1.2;
-    color: #000000;
-    letter-spacing: 0.02em;
+  .institution-logo {
+    display: block;
+    width: auto;
     max-width: 100%;
-    margin: 0 auto;
-    text-align: center;
-    word-break: break-word;
-  }
-
-  .institution-detail {
-    font-size: 12px;
-    line-height: 1.25;
-  }
-
-  .exam-block {
-    margin-top: 18px;
+    height: 96px;
+    object-fit: contain;
   }
 
   .exam-title,
@@ -220,6 +200,8 @@
     body { background: white !important; padding: 0 !important; }
     .print-shell { padding: 0 !important; margin: 0 !important; }
     .paper-frame { box-shadow: none !important; width: 100% !important; padding: 38px 40px 32px !important; }
+    .institution-brand { margin-bottom: 18px !important; }
+    .institution-logo { height: 96px !important; max-width: 100% !important; }
     @page { margin: 1.8cm 1cm 1.2cm; }
   }
 
