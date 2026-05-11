@@ -56,9 +56,9 @@
           <%= form.password_field :password, id: "login_password", placeholder: "Enter your password", required: true %>
         </div>
 
-        <div class="btn-row">
-          <%= form.submit "Sign In", class: "btn" %>
-          <a href="<%= pages_register_path %>" class="btn-ghost">Create Account</a>
+        <div class="btn-row auth-btn-row">
+          <%= form.submit "Sign In", class: "btn auth-submit-btn interactive" %>
+          <%= link_to "Create Account", pages_register_path, class: "btn-ghost auth-secondary-btn interactive" %>
         </div>
       <% end %>
 

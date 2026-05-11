@@ -2,6 +2,9 @@ class QuestionBankParser
   VALID_SECTIONS = %w[A B C].freeze
   VALID_UNITS = %w[1 2 3 4 5].freeze
   QUESTION_NUMBER_PATTERN = /(?:\A|(?<=\s))(\d{1,2})\s*(?:[\.\)])?\s*(?=[A-Za-z\(])/i
+  UNIT_HEADING_PATTERN = /\bunit\b\s*[-:.–]?\s*([a-z0-9]+(?:\.[a-z0-9]+)?)/i
+  SECTION_HEADING_PATTERN = /\bsection\b\s*[-:–]?\s*([abc])\b/i
+  SECTION_HEADING_PREFIX_PATTERN = /\A\s*section\b\s*[-:–]?\s*[abc]\b/i
 
   def self.parse(paragraphs)
     new(paragraphs).parse
@@ -23,26 +26,7 @@ class QuestionBankParser
       paragraph = normalize(paragraph)
       next if paragraph.empty?
 
-      if (unit = detect_unit(paragraph))
-        infer_pending_question!
-        flush_question!
-        reset_section_state!
-        @current_unit = unit
-        next
-      end
-
-      if (section = detect_section(paragraph))
-        infer_pending_question!
-        flush_question!
-        @current_section = section
-        reset_question_buffer!
-        next
-      end
-
-      next if ignore?(paragraph)
-      next unless @current_unit && @current_section
-
-      parse_question_paragraph(paragraph)
+      process_paragraph(paragraph)
     end
 
     infer_pending_question!
@@ -61,7 +45,7 @@ class QuestionBankParser
   end
 
   def detect_unit(text)
-    match = text.match(/\bunit\b\s*[-:]?\s*([a-z0-9]+)/i)
+    match = text.match(UNIT_HEADING_PATTERN)
     return unless match
 
     normalized_unit = Question.normalize_unit_value(match[1])
@@ -71,9 +55,91 @@ class QuestionBankParser
   end
 
   def detect_section(text)
-    match = text.match(/\bsection\b\s*[-:–]?\s*([abc])\b/i)
+    match = text.match(SECTION_HEADING_PATTERN)
     section = match && match[1].upcase
     VALID_SECTIONS.include?(section) ? section : nil
+  end
+
+  def process_paragraph(paragraph)
+    remaining = paragraph
+
+    loop do
+      heading_type, heading_match = next_heading_match(remaining)
+
+      unless heading_match
+        process_question_text(remaining)
+        break
+      end
+
+      if heading_match.begin(0).positive?
+        process_question_text(remaining[0...heading_match.begin(0)])
+        remaining = remaining[heading_match.begin(0)..]
+        next
+      end
+
+      case heading_type
+      when :unit
+        process_unit_heading!(remaining)
+        next_section_match = SECTION_HEADING_PATTERN.match(remaining, heading_match.end(0))
+        break unless next_section_match
+
+        remaining = remaining[next_section_match.begin(0)..]
+      when :section
+        process_section_heading!(remaining)
+        remaining = strip_section_heading_prefix(remaining)
+        break if remaining.empty?
+      end
+    end
+  end
+
+  def next_heading_match(text)
+    unit_match = UNIT_HEADING_PATTERN.match(text)
+    section_match = SECTION_HEADING_PATTERN.match(text)
+
+    if unit_match && (!section_match || unit_match.begin(0) <= section_match.begin(0))
+      [ :unit, unit_match ]
+    elsif section_match
+      [ :section, section_match ]
+    else
+      [ nil, nil ]
+    end
+  end
+
+  def process_unit_heading!(text)
+    unit = detect_unit(text)
+    return unless unit
+
+    infer_pending_question!
+    flush_question!
+    reset_section_state!
+    @current_unit = unit
+  end
+
+  def process_section_heading!(text)
+    section = detect_section(text)
+    return unless section
+
+    infer_pending_question!
+    flush_question!
+    @current_section = section
+    reset_question_buffer!
+  end
+
+  def process_question_text(text)
+    text = normalize_fragment(text)
+    return if text.empty? || ignore?(text)
+    return unless @current_unit && @current_section
+
+    parse_question_paragraph(text)
+  end
+
+  def strip_section_heading_prefix(text)
+    text
+      .sub(SECTION_HEADING_PREFIX_PATTERN, "")
+      .sub(/\A\s*[^A-Za-z0-9]+/, "")
+      .sub(/\A\s*\(?\d+\s*marks?\)?/i, "")
+      .sub(/\A\s*[^A-Za-z0-9]+/, "")
+      .strip
   end
 
   def parse_question_paragraph(paragraph)
@@ -159,10 +225,7 @@ class QuestionBankParser
     if @current_question_number
       @current_question_parts << text
     else
-      if @pending_question_prefix_parts.any?
-        infer_pending_question!
-      end
-
+      infer_pending_question! if @pending_question_prefix_parts.any?
       @pending_question_prefix_parts << text
     end
   end

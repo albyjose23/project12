@@ -178,6 +178,21 @@ textarea {
   padding: 2.5rem;
 }
 
+.auth-submit-btn {
+  min-width: 11rem;
+  background: linear-gradient(135deg, #ffffff, #d8d8de);
+  color: #08080b;
+  border-color: rgba(255, 255, 255, 0.52);
+  box-shadow: 0 20px 44px rgba(255, 255, 255, 0.18);
+}
+
+.auth-secondary-btn {
+  min-width: 11rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #f5f5f7;
+}
+
 .brand-lockup {
   display: flex;
   align-items: center;
@@ -272,6 +287,10 @@ textarea {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.9rem;
+}
+
+.auth-btn-row > * {
+  flex: 1 1 12rem;
 }
 
 .btn,
@@ -662,11 +681,36 @@ tbody tr:hover {
 
 .paper-actions {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   gap: 1rem;
   margin: 0 auto 1.5rem;
   width: min(980px, 100%);
+  padding: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 1.5rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(241, 245, 249, 0.92));
+  backdrop-filter: blur(14px);
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.08);
+}
+
+.paper-action-btn {
+  min-width: 12.5rem;
+  font-weight: 700;
+  border-color: rgba(148, 163, 184, 0.35);
+  box-shadow: none;
+}
+
+.paper-action-back {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.paper-action-print {
+  background: linear-gradient(135deg, #0f172a, #334155);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 14px 24px rgba(15, 23, 42, 0.22);
 }
 
 .paper-frame {
@@ -777,6 +821,11 @@ tbody tr:hover {
   .paper-meta {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .paper-action-btn,
+  .auth-btn-row > * {
+    width: 100%;
   }
 
   .page-title {

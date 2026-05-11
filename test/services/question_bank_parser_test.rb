@@ -161,4 +161,41 @@ class QuestionBankParserTest < ActiveSupport::TestCase
       section_c_rows.map { |row| row["text"] }
     )
   end
+
+  test "parses combined unit and section headings with inline next-unit breaks" do
+    rows = QuestionBankParser.parse([
+      "UNIT 1 - Introduction & Intelligent Agents Section A (2 Marks)",
+      "Define Artificial Intelligence.",
+      "What is an intelligent agent?",
+      "Section B (6 Marks)",
+      "Explain the history and evolution of AI.",
+      "Section C (8 Marks)",
+      "Explain AI and its foundations, history, and future scope.",
+      "Describe intelligent agents and their types with examples.",
+      "UNIT 2.1 - Uninformed Search Section A (2 Marks)",
+      "What is a problem-solving agent?",
+      "Section C (8 Marks)",
+      "Compare BFS, DFS, and UCS with analysis.",
+      "Explain problem-solving using search with example. UNIT 2.2 - Informed & Advanced Search Section A (2 Marks)",
+      "Define heuristic function."
+    ])
+
+    assert_equal 9, rows.size
+    assert_equal [ "A", "A", "B", "C", "C", "A", "C", "C", "A" ], rows.map { |row| row["section"] }
+    assert_equal [ "Unit 1", "Unit 1", "Unit 1", "Unit 1", "Unit 1", "Unit 2", "Unit 2", "Unit 2", "Unit 2" ], rows.map { |row| row["unit"] }
+    assert_equal(
+      [
+        "Define Artificial Intelligence.",
+        "What is an intelligent agent?",
+        "Explain the history and evolution of AI.",
+        "Explain AI and its foundations, history, and future scope.",
+        "Describe intelligent agents and their types with examples.",
+        "What is a problem-solving agent?",
+        "Compare BFS, DFS, and UCS with analysis.",
+        "Explain problem-solving using search with example.",
+        "Define heuristic function."
+      ],
+      rows.map { |row| row["text"] }
+    )
+  end
 end
