@@ -21,21 +21,25 @@
           <span class="badge">Ready to Run</span>
         </div>
 
-        <form action="<%= create_paper_path %>" method="POST" class="mt-8 space-y-6">
+        <% form_state = @form_state || {} %>
+        <% selected_units = Array(@selected_units).map(&:to_s) %>
+        <% section_counts = form_state.fetch("section_counts", {}) %>
+        <% manual_section_counts = form_state.fetch("manual_section_counts", {}) %>
+
+        <form action="<%= create_paper_path %>" method="POST" class="mt-8 space-y-6" data-controller="randomizer-mode">
           <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
           
           <div class="field-grid">
             <div class="field">
               <label for="paper_title">Question Paper Title</label>
-              <input id="paper_title" name="title" type="text" class="ui-input" value="Mid-Term Examination 2026" required>
+              <input id="paper_title" name="title" type="text" class="ui-input" value="<%= form_state["title"] %>" required>
             </div>
             <div class="field">
               <label for="paper_exam_type">Exam Type</label>
               <select id="paper_exam_type" name="exam_type" class="ui-select">
-                <option>First Internal</option>
-                <option>Second Internal</option>
-                <option>Model Exam</option>
-                <option>End Semester</option>
+                <% ["First Internal", "Second Internal", "Model Exam", "End Semester"].each do |option| %>
+                  <option value="<%= option %>" <%= "selected" if form_state["exam_type"] == option %>><%= option %></option>
+                <% end %>
               </select>
             </div>
             <div class="field">
@@ -43,24 +47,54 @@
               <select id="paper_subject" name="subject_id" class="ui-select" required>
                 <option value="">Select Subject</option>
                 <% Subject.all.each do |s| %>
-                  <option value="<%= s.id %>"><%= s.name %> (<%= s.code %>)</option>
+                  <option value="<%= s.id %>" <%= "selected" if form_state["subject_id"].to_s == s.id.to_s %>><%= s.name %> (<%= s.code %>)</option>
                 <% end %>
               </select>
             </div>
             <div class="field">
               <label for="paper_duration">Exam Duration</label>
-              <input id="paper_duration" name="duration" type="text" class="ui-input" value="3 Hours" required>
+              <input id="paper_duration" name="duration" type="text" class="ui-input" value="<%= form_state["duration"] %>" required>
             </div>
             <div class="field">
               <label for="paper_total_marks">Total Marks</label>
-              <input id="paper_total_marks" name="total_marks" type="number" class="ui-input" value="44" min="1" required>
+              <input id="paper_total_marks" name="total_marks" type="number" class="ui-input" value="<%= form_state["total_marks"] %>" min="1" required>
             </div>
           </div>
 
-          <% selected_units = Array(@selected_units).map(&:to_s) %>
+          <div class="panel">
+            <div class="panel-headline p-4">
+              <div>
+                <h4>Randomizer Mode</h4>
+                <p class="subtle-text">Use the current randomizer or switch to unit-wise manual selection.</p>
+              </div>
+            </div>
+
+            <div class="grid gap-3 p-4 sm:grid-cols-2">
+              <label class="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700">
+                <input
+                  type="radio"
+                  name="generator_mode"
+                  value="normal"
+                  class="h-4 w-4"
+                  data-action="change->randomizer-mode#toggle"
+                  <%= "checked" if form_state["generator_mode"] != "manual" %>>
+                <span>Normal Randomizer</span>
+              </label>
+              <label class="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700">
+                <input
+                  type="radio"
+                  name="generator_mode"
+                  value="manual"
+                  class="h-4 w-4"
+                  data-action="change->randomizer-mode#toggle"
+                  <%= "checked" if form_state["generator_mode"] == "manual" %>>
+                <span>Manual Randomizer</span>
+              </label>
+            </div>
+          </div>
 
           <div class="list-grid">
-            <div class="panel">
+            <div class="panel" data-randomizer-mode-target="normalPanel">
               <div class="panel-headline p-4">
                 <div>
                   <h4>Question Selection</h4>
@@ -71,45 +105,101 @@
               <div class="stack p-4">
                 <div class="field">
                   <label for="section_a_count">2 Marks Questions</label>
-                  <input id="section_a_count" name="section_a_count" type="number" class="ui-input" value="5" min="0">
+                  <input id="section_a_count" name="section_a_count" type="number" class="ui-input" value="<%= section_counts["A"] %>" min="0">
                 </div>
                 <div class="field">
                   <label for="section_b_count">6 Marks Questions</label>
-                  <input id="section_b_count" name="section_b_count" type="number" class="ui-input" value="3" min="0">
+                  <input id="section_b_count" name="section_b_count" type="number" class="ui-input" value="<%= section_counts["B"] %>" min="0">
                 </div>
                 <div class="field">
                   <label for="section_c_count">8 Marks Questions</label>
-                  <input id="section_c_count" name="section_c_count" type="number" class="ui-input" value="2" min="0">
+                  <input id="section_c_count" name="section_c_count" type="number" class="ui-input" value="<%= section_counts["C"] %>" min="0">
                 </div>
                 <p class="subtle-text"> The entered marks must be matching with total marks .</p>
               </div>
             </div>
 
-            <div class="panel">
+            <div class="panel hidden" data-randomizer-mode-target="manualPanel">
               <div class="panel-headline p-4">
                 <div>
-                  <h4>Unit Filter</h4>
-                  <p class="subtle-text">Tick the units to include. The generated paper will only use questions from the checked units.</p>
+                  <h4>Manual Unit Selection</h4>
+                  <p class="subtle-text">For each selected unit, set the exact Section A, B, and C question counts to combine into the final paper.</p>
                 </div>
               </div>
 
-              <div class="p-4">
-                <input type="hidden" name="unit_filter_present" value="1">
+              <div class="stack gap-4 p-4">
+                <div>
+                  <div class="mb-4">
+                    <h5 class="text-base font-semibold text-slate-900">Units</h5>
+                    <p class="subtle-text">Select one or more units to configure section-wise question counts.</p>
+                  </div>
 
-                <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  <% (1..5).each do |unit_number| %>
-                    <% unit = unit_number.to_s %>
-                    <label class="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700">
-                      <input
-                        type="checkbox"
-                        name="units[]"
-                        value="<%= unit %>"
-                        class="h-4 w-4"
-                        <%= "checked" if selected_units.include?(unit) %>>
-                      <span>Unit <%= unit %></span>
-                    </label>
-                  <% end %>
+                  <input type="hidden" name="unit_filter_present" value="1">
+
+                  <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    <% (1..5).each do |unit_number| %>
+                      <% unit = unit_number.to_s %>
+                      <label class="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700">
+                        <input
+                          type="checkbox"
+                          name="units[]"
+                          value="<%= unit %>"
+                          class="h-4 w-4"
+                          data-randomizer-mode-target="unitCheckbox"
+                          data-action="change->randomizer-mode#toggleUnitPanels"
+                          <%= "checked" if selected_units.include?(unit) %>>
+                        <span>Unit <%= unit %></span>
+                      </label>
+                    <% end %>
+                  </div>
                 </div>
+
+                <% (1..5).each do |unit_number| %>
+                  <% unit = unit_number.to_s %>
+                  <% unit_counts = manual_section_counts[unit] || manual_section_counts[unit.to_sym] || {} %>
+                  <div
+                    class="<%= selected_units.include?(unit) ? "" : "hidden " %>rounded-2xl border border-slate-200 p-4"
+                    data-randomizer-mode-target="unitPanel"
+                    data-unit="<%= unit %>">
+                    <div class="mb-4">
+                      <h5 class="text-base font-semibold text-slate-900">Unit <%= unit %></h5>
+                      <p class="subtle-text">Only questions from Unit <%= unit %> will be used for these counts.</p>
+                    </div>
+
+                    <div class="grid gap-4 sm:grid-cols-3">
+                      <div class="field">
+                        <label for="manual_unit_<%= unit %>_section_a">Section A question count</label>
+                        <input
+                          id="manual_unit_<%= unit %>_section_a"
+                          name="manual_section_counts[<%= unit %>][A]"
+                          type="number"
+                          class="ui-input"
+                          value="<%= unit_counts["A"] || unit_counts[:A] || 0 %>"
+                          min="0">
+                      </div>
+                      <div class="field">
+                        <label for="manual_unit_<%= unit %>_section_b">Section B question count</label>
+                        <input
+                          id="manual_unit_<%= unit %>_section_b"
+                          name="manual_section_counts[<%= unit %>][B]"
+                          type="number"
+                          class="ui-input"
+                          value="<%= unit_counts["B"] || unit_counts[:B] || 0 %>"
+                          min="0">
+                      </div>
+                      <div class="field">
+                        <label for="manual_unit_<%= unit %>_section_c">Section C question count</label>
+                        <input
+                          id="manual_unit_<%= unit %>_section_c"
+                          name="manual_section_counts[<%= unit %>][C]"
+                          type="number"
+                          class="ui-input"
+                          value="<%= unit_counts["C"] || unit_counts[:C] || 0 %>"
+                          min="0">
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
               </div>
             </div>
 
@@ -123,7 +213,7 @@
 
               <div class="field p-4">
                 <label for="paper_instructions">Paper Instructions</label>
-                <textarea id="paper_instructions" name="instructions" class="ui-textarea" placeholder="e.g. Answer all questions in Section A."></textarea>
+                <textarea id="paper_instructions" name="instructions" class="ui-textarea" placeholder="e.g. Answer all questions in Section A."><%= form_state["instructions"] %></textarea>
               </div>
             </div>
           </div>

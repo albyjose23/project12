@@ -24,6 +24,30 @@ class QuestionPaperGenerator
     end
   end
 
+  def questions_for_unit_and_section(unit, section, count)
+    normalized_section = section.to_s.upcase
+    normalized_unit = unit.to_s
+    return [] if count.to_i <= 0
+    return [] unless VALID_SECTIONS.include?(normalized_section)
+    return [] unless VALID_UNITS.include?(normalized_unit)
+
+    @questions
+      .select do |question|
+        Question.normalize_unit_value(question.unit) == normalized_unit &&
+          question.section_name == normalized_section
+      end
+      .shuffle
+      .first(count.to_i)
+  end
+
+  def build_manual(manual_section_counts)
+    manual_section_counts.each_with_object({}) do |(unit, section_counts), selected|
+      section_counts.each do |section, count|
+        selected["#{unit}_#{section}"] = questions_for_unit_and_section(unit, section, count)
+      end
+    end
+  end
+
   private
 
   def filtered_questions

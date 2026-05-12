@@ -68,41 +68,68 @@ class PagesController < ApplicationController
 
   def create_paper
     @subject = Subject.find(params[:subject_id])
-    section_counts = requested_section_counts
     selected_units = requested_units
+    generator_mode = requested_generator_mode
     available_questions = filtered_questions_for_paper(@subject, selected_units)
     requested_total_marks = params[:total_marks].to_i
-    generated_total_marks = calculate_total_marks(section_counts)
-    shortages = unavailable_sections(available_questions, section_counts)
-    selected_questions = select_questions_for_paper(available_questions, section_counts)
+    section_counts = requested_section_counts
+    manual_section_counts = requested_manual_section_counts(selected_units)
 
-    if section_counts.values.sum <= 0
-      redirect_to_generate_paper(alert: "Enter at least one question count before generating the paper.", selected_units: selected_units)
+    generated_total_marks =
+      if manual_randomizer_mode?
+        calculate_manual_total_marks(manual_section_counts)
+      else
+        calculate_total_marks(section_counts)
+      end
+
+    shortages =
+      if manual_randomizer_mode?
+        unavailable_manual_sections(available_questions, manual_section_counts)
+      else
+        unavailable_sections(available_questions, section_counts)
+      end
+
+    selected_questions = select_questions_for_paper(
+      available_questions,
+      section_counts: section_counts,
+      manual_section_counts: manual_section_counts,
+      generator_mode: generator_mode
+    )
+
+    requested_question_total =
+      if manual_randomizer_mode?
+        manual_question_count(manual_section_counts)
+      else
+        section_counts.values.sum
+      end
+
+    if requested_question_total <= 0
+      redirect_to_generate_paper(alert: "Enter at least one question count before generating the paper.")
       return
     end
 
     if unit_filter_requested? && selected_units.empty?
-      redirect_to_generate_paper(alert: "Select at least one unit before generating the paper.", selected_units: selected_units)
+      redirect_to_generate_paper(alert: "Select at least one unit before generating the paper.")
       return
     end
 
     if requested_total_marks <= 0
-      redirect_to_generate_paper(alert: "Enter a valid total marks value.", selected_units: selected_units)
+      redirect_to_generate_paper(alert: "Enter a valid total marks value.")
       return
     end
 
     if generated_total_marks != requested_total_marks
-      redirect_to_generate_paper(alert: "Total marks mismatch. The selected questions add up to #{generated_total_marks} marks.", selected_units: selected_units)
+      redirect_to_generate_paper(alert: "Total marks mismatch. The selected questions add up to #{generated_total_marks} marks.")
       return
     end
 
     if shortages.any?
-      redirect_to_generate_paper(alert: shortages.join(", "), selected_units: selected_units)
+      redirect_to_generate_paper(alert: shortages.join(", "))
       return
     end
 
-    if selected_questions.values.flatten.size != section_counts.values.sum
-      redirect_to_generate_paper(alert: "Unable to build a paper from the available question bank for the selected units.", selected_units: selected_units)
+    if selected_questions.values.flatten.size != requested_question_total
+      redirect_to_generate_paper(alert: "Unable to build a paper from the available question bank for the selected units.")
       return
     end
 
@@ -126,7 +153,7 @@ class PagesController < ApplicationController
 
       redirect_to view_paper_path(id: @paper.id)
     else
-      redirect_to_generate_paper(alert: "Failed to generate paper.", selected_units: selected_units)
+      redirect_to_generate_paper(alert: "Failed to generate paper.")
     end
   end
 
@@ -214,7 +241,8 @@ class PagesController < ApplicationController
   end
 
   def generate_paper
-    @selected_units = flash.key?(:selected_units) ? Array(flash[:selected_units]).map(&:to_s) : available_unit_options
+    @form_state = default_generate_paper_form.merge(flash[:generate_paper_form] || {})
+    @selected_units = Array(@form_state["units"]).map(&:to_s)
   end
 
   def generated_papers
@@ -249,6 +277,10 @@ class PagesController < ApplicationController
     end
   end
 
+  def calculate_manual_total_marks(manual_section_counts)
+    manual_section_counts.values.sum { |section_counts| calculate_total_marks(section_counts) }
+  end
+
   def unavailable_sections(questions, section_counts)
     available_counts = questions.group_by(&:marks).transform_values(&:count)
 
@@ -260,6 +292,23 @@ class PagesController < ApplicationController
       next if available >= count
 
       "Only #{available} question(s) available for #{marks}-mark section"
+    end
+  end
+
+  def unavailable_manual_sections(questions, manual_section_counts)
+    manual_section_counts.flat_map do |unit, section_counts|
+      unit_questions = questions.select do |question|
+        normalized_unit_value(question.unit) == unit
+      end
+
+      section_counts.filter_map do |section, count|
+        next if count <= 0
+
+        available = unit_questions.count { |question| question.section_name == section }
+        next if available >= count
+
+        "Only #{available} question(s) available for Unit #{unit} Section #{section}"
+      end
     end
   end
 
@@ -335,11 +384,17 @@ class PagesController < ApplicationController
     paragraphs
   end
 
-  def select_questions_for_paper(questions, section_counts)
-    QuestionPaperGenerator.new(
+  def select_questions_for_paper(questions, section_counts:, manual_section_counts:, generator_mode:)
+    generator = QuestionPaperGenerator.new(
       questions: questions,
       selected_units: requested_units
-    ).build(section_counts)
+    )
+
+    if generator_mode == "manual"
+      generator.build_manual(manual_section_counts)
+    else
+      generator.build(section_counts)
+    end
   end
 
   def requested_units
@@ -350,7 +405,22 @@ class PagesController < ApplicationController
   end
 
   def unit_filter_requested?
-    params[:unit_filter_present].present? || params.key?(:units)
+    manual_randomizer_mode? || params[:unit_filter_present].present? || params.key?(:units)
+  end
+
+  def requested_manual_section_counts(selected_units)
+    selected_units.each_with_object({}) do |unit, counts|
+      unit_params = params.dig(:manual_section_counts, unit) || params.dig("manual_section_counts", unit) || {}
+      counts[unit] = {
+        "A" => unit_params["A"].to_i,
+        "B" => unit_params["B"].to_i,
+        "C" => unit_params["C"].to_i
+      }
+    end
+  end
+
+  def manual_question_count(manual_section_counts)
+    manual_section_counts.values.sum { |counts| counts.values.sum }
   end
 
   def available_unit_options
@@ -370,8 +440,52 @@ class PagesController < ApplicationController
     Question.normalize_unit_value(unit)
   end
 
-  def redirect_to_generate_paper(alert:, selected_units:)
-    flash[:selected_units] = selected_units
+  def requested_generator_mode
+    manual_randomizer_mode? ? "manual" : "normal"
+  end
+
+  def manual_randomizer_mode?
+    params[:generator_mode].to_s == "manual"
+  end
+
+  def default_generate_paper_form
+    {
+      "title" => "Mid-Term Examination 2026",
+      "exam_type" => "First Internal",
+      "subject_id" => "",
+      "duration" => "3 Hours",
+      "total_marks" => 44,
+      "instructions" => "",
+      "generator_mode" => "normal",
+      "section_counts" => {
+        "A" => 5,
+        "B" => 3,
+        "C" => 2
+      },
+      "units" => [],
+      "manual_section_counts" => {}
+    }
+  end
+
+  def current_generate_paper_form_state
+    selected_units = requested_units
+
+    {
+      "title" => params[:title].presence || default_generate_paper_form["title"],
+      "exam_type" => params[:exam_type].presence || default_generate_paper_form["exam_type"],
+      "subject_id" => params[:subject_id].to_s,
+      "duration" => params[:duration].presence || default_generate_paper_form["duration"],
+      "total_marks" => params[:total_marks].presence || default_generate_paper_form["total_marks"],
+      "instructions" => params[:instructions].to_s,
+      "generator_mode" => requested_generator_mode,
+      "section_counts" => requested_section_counts.transform_values(&:to_i),
+      "units" => selected_units,
+      "manual_section_counts" => requested_manual_section_counts(selected_units)
+    }
+  end
+
+  def redirect_to_generate_paper(alert:)
+    flash[:generate_paper_form] = current_generate_paper_form_state
     redirect_to pages_generate_paper_path, alert: alert
   end
 

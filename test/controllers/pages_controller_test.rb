@@ -89,8 +89,12 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
     sign_in
     get pages_generate_paper_url
     assert_response :success
+    assert_match "Manual Randomizer", response.body
     assert_match 'name="units[]"', response.body
     assert_match "Unit 5", response.body
+    assert_no_match(/name="units\[\]".*checked/m, response.body)
+    assert_match(/data-randomizer-mode-target="manualPanel"/, response.body)
+    assert_match(/class="panel hidden"/, response.body)
   end
 
   test "should get generated_papers when logged in" do
@@ -683,6 +687,109 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to view_paper_url(id: paper.id)
     assert_equal [ 8, 8 ], paper.questions.order(:id).map(&:marks)
     assert_equal [ "Unit 1", "Unit 2" ], paper.questions.map(&:unit).uniq.sort
+  end
+
+  test "should generate a paper with exact per-unit manual randomizer counts" do
+    sign_in
+    subject = Subject.create!(name: "Compiler Design", code: "BCA504", department: "BCA", semester: "Semester 5")
+
+    3.times do |index|
+      Question.create!(content: "Unit 1 Section A #{index}", difficulty: "Easy", marks: 2, unit: "1", entry_mode: "typed", subject: subject)
+    end
+    2.times do |index|
+      Question.create!(content: "Unit 1 Section B #{index}", difficulty: "Medium", marks: 6, unit: "1", entry_mode: "typed", subject: subject)
+    end
+    Question.create!(content: "Unit 1 Section C 0", difficulty: "Hard", marks: 8, unit: "1", entry_mode: "typed", subject: subject)
+    2.times do |index|
+      Question.create!(content: "Unit 2 Section A #{index}", difficulty: "Easy", marks: 2, unit: "2", entry_mode: "typed", subject: subject)
+    end
+    Question.create!(content: "Unit 2 Section B 0", difficulty: "Medium", marks: 6, unit: "2", entry_mode: "typed", subject: subject)
+    2.times do |index|
+      Question.create!(content: "Unit 2 Section C #{index}", difficulty: "Hard", marks: 8, unit: "2", entry_mode: "typed", subject: subject)
+    end
+
+    post create_paper_url, params: {
+      title: "Manual Randomizer Paper",
+      exam_type: "Model Exam",
+      subject_id: subject.id,
+      duration: "3 Hours",
+      total_marks: 28,
+      generator_mode: "manual",
+      unit_filter_present: "1",
+      units: [ "1", "2" ],
+      manual_section_counts: {
+        "1" => { "A" => 2, "B" => 1, "C" => 1 },
+        "2" => { "A" => 1, "B" => 0, "C" => 1 }
+      }
+    }
+
+    paper = Paper.order(:created_at).last
+    assert_redirected_to view_paper_url(id: paper.id)
+
+    grouped = paper.questions.group_by { |question| [ Question.normalize_unit_value(question.unit), question.section_name ] }
+    assert_equal 2, grouped.fetch([ "1", "A" ]).size
+    assert_equal 1, grouped.fetch([ "1", "B" ]).size
+    assert_equal 1, grouped.fetch([ "1", "C" ]).size
+    assert_equal 1, grouped.fetch([ "2", "A" ]).size
+    assert_equal 1, grouped.fetch([ "2", "C" ]).size
+    assert_nil grouped[[ "2", "B" ]]
+  end
+
+  test "manual randomizer should validate per-unit section availability" do
+    sign_in
+    subject = Subject.create!(name: "Java Programming", code: "BCA505", department: "BCA", semester: "Semester 5")
+    Question.create!(content: "Unit 1 Section A", difficulty: "Easy", marks: 2, unit: "1", entry_mode: "typed", subject: subject)
+
+    assert_no_difference("Paper.count") do
+      post create_paper_url, params: {
+        title: "Manual Randomizer Paper",
+        exam_type: "First Internal",
+        subject_id: subject.id,
+        duration: "3 Hours",
+        total_marks: 4,
+        generator_mode: "manual",
+        unit_filter_present: "1",
+        units: [ "1" ],
+        manual_section_counts: {
+          "1" => { "A" => 2, "B" => 0, "C" => 0 }
+        }
+      }
+    end
+
+    assert_redirected_to pages_generate_paper_url
+    assert_equal "Only 1 question(s) available for Unit 1 Section A", flash[:alert]
+  end
+
+  test "manual randomizer keeps only selected unit counts in form state after redirect" do
+    sign_in
+    subject = Subject.create!(name: "Python", code: "BCA506", department: "BCA", semester: "Semester 5")
+    Question.create!(content: "Unit 1 Section A", difficulty: "Easy", marks: 2, unit: "1", entry_mode: "typed", subject: subject)
+
+    post create_paper_url, params: {
+      title: "Manual Randomizer Paper",
+      exam_type: "First Internal",
+      subject_id: subject.id,
+      duration: "3 Hours",
+      total_marks: 10,
+      generator_mode: "manual",
+      unit_filter_present: "1",
+      units: [ "1", "2" ],
+      manual_section_counts: {
+        "1" => { "A" => 2, "B" => 0, "C" => 0 },
+        "2" => { "A" => 3, "B" => 5, "C" => 0 },
+        "3" => { "A" => 9, "B" => 9, "C" => 9 }
+      }
+    }
+
+    assert_redirected_to pages_generate_paper_url
+
+    follow_redirect!
+    assert_response :success
+    assert_match 'name="manual_section_counts[1][A]"', response.body
+    assert_match 'value="2"', response.body
+    assert_match 'name="manual_section_counts[2][B]"', response.body
+    assert_match 'value="5"', response.body
+    assert_no_match 'name="manual_section_counts[3][A]" value="9"', response.body
   end
 
   private
