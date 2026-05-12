@@ -38,14 +38,36 @@ Rails.application.configure do
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
 
-  # Don't care if the mailer can't send.
-  config.action_mailer.raise_delivery_errors = false
+  # Surface delivery problems during development instead of silently swallowing them.
+  config.action_mailer.raise_delivery_errors = true
 
   # Make template changes take effect immediately.
   config.action_mailer.perform_caching = false
 
-  # Set localhost to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
+  app_host = ENV.fetch("APP_HOST", "localhost:3000")
+  missing_mailer_env = %w[SMTP_USERNAME SMTP_PASSWORD MAILER_FROM_EMAIL APP_HOST].select { |key| ENV[key].blank? }
+
+  config.action_mailer.delivery_method = :smtp
+  config.action_mailer.perform_deliveries = true
+  config.action_mailer.default_url_options = { host: app_host }
+  config.action_mailer.smtp_settings = {
+    address: "smtp.gmail.com",
+    port: 587,
+    domain: app_host.split(":").first,
+    user_name: ENV["SMTP_USERNAME"],
+    password: ENV["SMTP_PASSWORD"],
+    authentication: :plain,
+    enable_starttls_auto: true
+  }
+
+  if missing_mailer_env.any?
+    config.after_initialize do
+      Rails.logger.error(
+        "Action Mailer SMTP is missing required environment variables: #{missing_mailer_env.join(', ')}. " \
+        "Email delivery will fail until they are configured."
+      )
+    end
+  end
 
   # Print deprecation notices to the Rails logger.
   config.active_support.deprecation = :log

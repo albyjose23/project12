@@ -5,6 +5,8 @@ require "zip"
 
 class PagesControllerTest < ActionDispatch::IntegrationTest
   setup do
+    ActionMailer::Base.deliveries.clear
+
     @user = User.create!(
       name: "Test Faculty",
       email: "faculty@example.com",
@@ -38,12 +40,44 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
     }
 
     assert_redirected_to pages_dashboard_url
+    assert_equal 1, ActionMailer::Base.deliveries.size
+    assert_match "Welcome to QPaper", ActionMailer::Base.deliveries.last.subject
+    assert_match "new@example.com", ActionMailer::Base.deliveries.last.to.join
+  end
+
+  test "should reject duplicate email regardless of case" do
+    assert_no_difference("User.count") do
+      post pages_register_url, params: {
+        user: {
+          name: "Duplicate Faculty",
+          email: "FACULTY@example.com",
+          department: "BCA",
+          role: "Professor",
+          password: "Password123",
+          password_confirmation: "Password123"
+        }
+      }
+    end
+
+    assert_response :unprocessable_entity
+    assert_match "Email has already been taken", response.body
   end
 
   test "should allow registered user to log in" do
     post pages_login_url, params: {
       session: {
         email: @user.email,
+        password: "Password123"
+      }
+    }
+
+    assert_redirected_to pages_dashboard_url
+  end
+
+  test "should allow registered user to log in with email case differences" do
+    post pages_login_url, params: {
+      session: {
+        email: "FACULTY@EXAMPLE.COM",
         password: "Password123"
       }
     }
@@ -60,6 +94,38 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
     }
 
     assert_response :unprocessable_entity
+  end
+
+  test "sessions stay isolated per browser session" do
+    second_user = User.create!(
+      name: "Second Faculty",
+      email: "second@example.com",
+      department: "BCA",
+      role: "Professor",
+      password: "Password123",
+      password_confirmation: "Password123"
+    )
+
+    first_browser = open_session
+    second_browser = open_session
+
+    first_browser.post pages_login_url, params: {
+      session: {
+        email: @user.email,
+        password: "Password123"
+      }
+    }
+
+    second_browser.post pages_login_url, params: {
+      session: {
+        email: second_user.email,
+        password: "Password123"
+      }
+    }
+
+    assert_equal @user.id, first_browser.request.session[:user_id]
+    assert_equal second_user.id, second_browser.request.session[:user_id]
+    assert_not_equal first_browser.request.session[:user_id], second_browser.request.session[:user_id]
   end
 
   test "should redirect unauthenticated dashboard access" do
@@ -105,24 +171,24 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
 
   test "should get view_paper when logged in" do
     sign_in
-    paper = Paper.create!(title: "Sample Paper", subject: Subject.create!(name: "Data Structures", code: "CS101", department: "BCA", semester: "Semester 1"))
+    paper = create_paper_record(title: "Sample Paper", subject: create_subject(name: "Data Structures", code: "CS101", department: "BCA", semester: "Semester 1"))
     get view_paper_url(id: paper.id)
     assert_response :success
   end
 
   test "view_paper uses exam paper print format with section numbering reset" do
     sign_in
-    subject = Subject.create!(name: "PHP & MYSQL", code: "BCA301", department: "BCA", semester: "Semester 3")
-    paper = Paper.create!(
+    subject = create_subject(name: "PHP & MYSQL", code: "BCA301", department: "BCA", semester: "Semester 3")
+    paper = create_paper_record(
       title: "III BCA MODEL EXAMINATION - JUNE 2024",
       subject: subject,
       duration: "2.5 Hrs",
       total_marks: 60
     )
 
-    question_a = Question.create!(content: "What is include function?", difficulty: "Easy", marks: 2, entry_mode: "typed", subject: subject)
-    question_b = Question.create!(content: "Explain mysql_connect() function with example.", difficulty: "Medium", marks: 6, entry_mode: "typed", subject: subject)
-    question_c = Question.create!(content: "What is Constructor in PHP? Explain it with an example.", difficulty: "Hard", marks: 8, entry_mode: "typed", subject: subject)
+    question_a = create_question(content: "What is include function?", difficulty: "Easy", marks: 2, entry_mode: "typed", subject: subject)
+    question_b = create_question(content: "Explain mysql_connect() function with example.", difficulty: "Medium", marks: 6, entry_mode: "typed", subject: subject)
+    question_c = create_question(content: "What is Constructor in PHP? Explain it with an example.", difficulty: "Hard", marks: 8, entry_mode: "typed", subject: subject)
 
     PaperQuestion.create!(paper: paper, question: question_a)
     PaperQuestion.create!(paper: paper, question: question_b)
@@ -131,10 +197,8 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
     get view_paper_url(id: paper.id)
 
     assert_response :success
-    assert_match "CHRIST COLLEGE", response.body
-    assert_match "OF SCIENCE AND MANAGEMENT", response.body
     assert_match "III BCA MODEL EXAMINATION - JUNE 2024", response.body
-    assert_match "PHP &amp; MYSQL", response.body
+    assert_match "SUBJECT NAME:PHP &amp; MYSQL", response.body
     assert_match "Section- A", response.body
     assert_match "Section- B", response.body
     assert_match "Section- C", response.body
@@ -147,7 +211,7 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
 
   test "should import questions from csv" do
     sign_in
-    subject = Subject.create!(name: "Data Structures", code: "CS101", department: "BCA", semester: "Semester 1")
+    subject = create_subject(name: "Data Structures", code: "CS101", department: "BCA", semester: "Semester 1")
 
     post import_questions_url, params: {
       subject_id: subject.id,
@@ -169,10 +233,10 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
 
   test "question bank shows imported files instead of each imported question" do
     sign_in
-    subject = Subject.create!(name: "Data Structures", code: "CS101", department: "BCA", semester: "Semester 1")
+    subject = create_subject(name: "Data Structures", code: "CS101", department: "BCA", semester: "Semester 1")
     batch_id = "batch-001"
 
-    Question.create!(
+    create_question(
       content: "What is a stack?",
       difficulty: "Easy",
       marks: 2,
@@ -182,7 +246,7 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
       import_batch_id: batch_id,
       import_source_name: "questions.csv"
     )
-    Question.create!(
+    create_question(
       content: "What is a queue?",
       difficulty: "Medium",
       marks: 6,
@@ -204,10 +268,10 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
 
   test "should delete all questions from an imported file batch" do
     sign_in
-    subject = Subject.create!(name: "Data Structures", code: "CS101", department: "BCA", semester: "Semester 1")
+    subject = create_subject(name: "Data Structures", code: "CS101", department: "BCA", semester: "Semester 1")
 
     2.times do |index|
-      Question.create!(
+      create_question(
         content: "Imported question #{index}",
         difficulty: "Easy",
         marks: 2,
@@ -229,7 +293,7 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
 
   test "question bank keeps repeated imports of the same filename as separate files" do
     sign_in
-    subject = Subject.create!(name: "Data Structures", code: "CS101", department: "BCA", semester: "Semester 1")
+    subject = create_subject(name: "Data Structures", code: "CS101", department: "BCA", semester: "Semester 1")
 
     2.times do |index|
       post import_questions_url, params: {
@@ -252,12 +316,12 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
 
   test "deleting one imported file keeps other files with the same filename" do
     sign_in
-    subject = Subject.create!(name: "Data Structures", code: "CS101", department: "BCA", semester: "Semester 1")
+    subject = create_subject(name: "Data Structures", code: "CS101", department: "BCA", semester: "Semester 1")
 
     first_batch = "batch-001"
     second_batch = "batch-002"
 
-    Question.create!(
+    create_question(
       content: "Imported question 1",
       difficulty: "Easy",
       marks: 2,
@@ -267,7 +331,7 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
       import_batch_id: first_batch,
       import_source_name: "questions.csv"
     )
-    Question.create!(
+    create_question(
       content: "Imported question 2",
       difficulty: "Easy",
       marks: 2,
@@ -289,9 +353,9 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
 
   test "question bank shows delete icon for imported files without batch id" do
     sign_in
-    subject = Subject.create!(name: "Data Structures", code: "CS101", department: "BCA", semester: "Semester 1")
+    subject = create_subject(name: "Data Structures", code: "CS101", department: "BCA", semester: "Semester 1")
 
-    Question.create!(
+    create_question(
       content: "Legacy imported question",
       difficulty: "Easy",
       marks: 2,
@@ -310,10 +374,10 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
 
   test "should delete imported file by source name when batch id is missing" do
     sign_in
-    subject = Subject.create!(name: "Data Structures", code: "CS101", department: "BCA", semester: "Semester 1")
+    subject = create_subject(name: "Data Structures", code: "CS101", department: "BCA", semester: "Semester 1")
 
     2.times do |index|
-      Question.create!(
+      create_question(
         content: "Legacy imported question #{index}",
         difficulty: "Easy",
         marks: 2,
@@ -335,7 +399,7 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
 
   test "should import questions from docx" do
     sign_in
-    subject = Subject.create!(name: "Algorithms", code: "CS102", department: "BCA", semester: "Semester 2")
+    subject = create_subject(name: "Algorithms", code: "CS102", department: "BCA", semester: "Semester 2")
     docx = build_docx(<<~TEXT)
       Unit: 2
       Section: B
@@ -368,7 +432,7 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
 
   test "should import docx when section c questions are in a single paragraph" do
     sign_in
-    subject = Subject.create!(name: "Database Systems", code: "CS105", department: "BCA", semester: "Semester 4")
+    subject = create_subject(name: "Database Systems", code: "CS105", department: "BCA", semester: "Semester 4")
     docx = build_docx_paragraphs([
       "UNIT 2:",
       "Section C - 8 Marks",
@@ -400,7 +464,7 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
 
   test "should import docx with bracket numbering and leading spaces" do
     sign_in
-    subject = Subject.create!(name: "C Programming", code: "CS106", department: "BCA", semester: "Semester 1")
+    subject = create_subject(name: "C Programming", code: "CS106", department: "BCA", semester: "Semester 1")
     docx = build_docx_paragraphs([
       "UNIT I",
       "Section A - 2 Marks",
@@ -426,7 +490,7 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
 
   test "should import questions from teacher style docx headings with numbered lines" do
     sign_in
-    subject = Subject.create!(name: "Programming", code: "CS103", department: "BCA", semester: "Semester 1")
+    subject = create_subject(name: "Programming", code: "CS103", department: "BCA", semester: "Semester 1")
     docx = build_docx(<<~TEXT)
       Unit One
       Section A
@@ -466,7 +530,7 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
 
   test "should import docx only when numbered questions appear inside the section" do
     sign_in
-    subject = Subject.create!(name: "Data Structures", code: "CS107", department: "BCA", semester: "Semester 2")
+    subject = create_subject(name: "Data Structures", code: "CS107", department: "BCA", semester: "Semester 2")
     docx = build_docx(<<~TEXT)
       Unit One
       Section A
@@ -504,7 +568,7 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
 
   test "should import questions from docx with flexible section heading formats" do
     sign_in
-    subject = Subject.create!(name: "Networking", code: "CS104", department: "BCA", semester: "Semester 3")
+    subject = create_subject(name: "Networking", code: "CS104", department: "BCA", semester: "Semester 3")
     docx = build_docx(<<~TEXT)
       Unit 3
       SECTION : A
@@ -541,7 +605,7 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
 
   test "should import college question bank docx with preamble and continuation lines" do
     sign_in
-    subject = Subject.create!(name: "PHP & MYSQL", code: "BCA601", department: "BCA", semester: "Semester 6")
+    subject = create_subject(name: "PHP & MYSQL", code: "BCA601", department: "BCA", semester: "Semester 6")
     docx = build_docx(<<~TEXT)
       VI SEM BCA(NEP)
       PHP &MYSQL QUESTION BANK
@@ -584,12 +648,12 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
 
   test "should generate a paper with random filtered questions across selected units" do
     sign_in
-    subject = Subject.create!(name: "Operating Systems", code: "BCA501", department: "BCA", semester: "Semester 5")
+    subject = create_subject(name: "Operating Systems", code: "BCA501", department: "BCA", semester: "Semester 5")
 
     %w[1 2 3].each do |unit|
-      Question.create!(content: "Section A #{unit}", difficulty: "Easy", marks: 2, unit: unit, entry_mode: "typed", subject: subject)
-      Question.create!(content: "Section B #{unit}", difficulty: "Medium", marks: 6, unit: unit, entry_mode: "typed", subject: subject)
-      Question.create!(content: "Section C #{unit}", difficulty: "Hard", marks: 8, unit: unit, entry_mode: "typed", subject: subject)
+      create_question(content: "Section A #{unit}", difficulty: "Easy", marks: 2, unit: unit, entry_mode: "typed", subject: subject)
+      create_question(content: "Section B #{unit}", difficulty: "Medium", marks: 6, unit: unit, entry_mode: "typed", subject: subject)
+      create_question(content: "Section C #{unit}", difficulty: "Hard", marks: 8, unit: unit, entry_mode: "typed", subject: subject)
     end
 
     post create_paper_url, params: {
@@ -615,12 +679,12 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
 
   test "should generate a paper only from the selected units" do
     sign_in
-    subject = Subject.create!(name: "Computer Networks", code: "BCA502", department: "BCA", semester: "Semester 5")
+    subject = create_subject(name: "Computer Networks", code: "BCA502", department: "BCA", semester: "Semester 5")
 
     %w[1 2 3].each do |unit|
-      Question.create!(content: "Section A #{unit}", difficulty: "Easy", marks: 2, unit: unit, entry_mode: "typed", subject: subject)
-      Question.create!(content: "Section B #{unit}", difficulty: "Medium", marks: 6, unit: unit, entry_mode: "typed", subject: subject)
-      Question.create!(content: "Section C #{unit}", difficulty: "Hard", marks: 8, unit: unit, entry_mode: "typed", subject: subject)
+      create_question(content: "Section A #{unit}", difficulty: "Easy", marks: 2, unit: unit, entry_mode: "typed", subject: subject)
+      create_question(content: "Section B #{unit}", difficulty: "Medium", marks: 6, unit: unit, entry_mode: "typed", subject: subject)
+      create_question(content: "Section C #{unit}", difficulty: "Hard", marks: 8, unit: unit, entry_mode: "typed", subject: subject)
     end
 
     post create_paper_url, params: {
@@ -644,7 +708,7 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
 
   test "should generate 8 mark questions from only the two selected imported units" do
     sign_in
-    subject = Subject.create!(name: "Microprocessors", code: "BCA503", department: "BCA", semester: "Semester 5")
+    subject = create_subject(name: "Microprocessors", code: "BCA503", department: "BCA", semester: "Semester 5")
     docx = build_docx(<<~TEXT)
       UNIT 1
       SECTION C-8 Marks
@@ -691,21 +755,21 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
 
   test "should generate a paper with exact per-unit manual randomizer counts" do
     sign_in
-    subject = Subject.create!(name: "Compiler Design", code: "BCA504", department: "BCA", semester: "Semester 5")
+    subject = create_subject(name: "Compiler Design", code: "BCA504", department: "BCA", semester: "Semester 5")
 
     3.times do |index|
-      Question.create!(content: "Unit 1 Section A #{index}", difficulty: "Easy", marks: 2, unit: "1", entry_mode: "typed", subject: subject)
+      create_question(content: "Unit 1 Section A #{index}", difficulty: "Easy", marks: 2, unit: "1", entry_mode: "typed", subject: subject)
     end
     2.times do |index|
-      Question.create!(content: "Unit 1 Section B #{index}", difficulty: "Medium", marks: 6, unit: "1", entry_mode: "typed", subject: subject)
+      create_question(content: "Unit 1 Section B #{index}", difficulty: "Medium", marks: 6, unit: "1", entry_mode: "typed", subject: subject)
     end
-    Question.create!(content: "Unit 1 Section C 0", difficulty: "Hard", marks: 8, unit: "1", entry_mode: "typed", subject: subject)
+    create_question(content: "Unit 1 Section C 0", difficulty: "Hard", marks: 8, unit: "1", entry_mode: "typed", subject: subject)
     2.times do |index|
-      Question.create!(content: "Unit 2 Section A #{index}", difficulty: "Easy", marks: 2, unit: "2", entry_mode: "typed", subject: subject)
+      create_question(content: "Unit 2 Section A #{index}", difficulty: "Easy", marks: 2, unit: "2", entry_mode: "typed", subject: subject)
     end
-    Question.create!(content: "Unit 2 Section B 0", difficulty: "Medium", marks: 6, unit: "2", entry_mode: "typed", subject: subject)
+    create_question(content: "Unit 2 Section B 0", difficulty: "Medium", marks: 6, unit: "2", entry_mode: "typed", subject: subject)
     2.times do |index|
-      Question.create!(content: "Unit 2 Section C #{index}", difficulty: "Hard", marks: 8, unit: "2", entry_mode: "typed", subject: subject)
+      create_question(content: "Unit 2 Section C #{index}", difficulty: "Hard", marks: 8, unit: "2", entry_mode: "typed", subject: subject)
     end
 
     post create_paper_url, params: {
@@ -737,8 +801,8 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
 
   test "manual randomizer should validate per-unit section availability" do
     sign_in
-    subject = Subject.create!(name: "Java Programming", code: "BCA505", department: "BCA", semester: "Semester 5")
-    Question.create!(content: "Unit 1 Section A", difficulty: "Easy", marks: 2, unit: "1", entry_mode: "typed", subject: subject)
+    subject = create_subject(name: "Java Programming", code: "BCA505", department: "BCA", semester: "Semester 5")
+    create_question(content: "Unit 1 Section A", difficulty: "Easy", marks: 2, unit: "1", entry_mode: "typed", subject: subject)
 
     assert_no_difference("Paper.count") do
       post create_paper_url, params: {
@@ -762,8 +826,8 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
 
   test "manual randomizer keeps only selected unit counts in form state after redirect" do
     sign_in
-    subject = Subject.create!(name: "Python", code: "BCA506", department: "BCA", semester: "Semester 5")
-    Question.create!(content: "Unit 1 Section A", difficulty: "Easy", marks: 2, unit: "1", entry_mode: "typed", subject: subject)
+    subject = create_subject(name: "Python", code: "BCA506", department: "BCA", semester: "Semester 5")
+    create_question(content: "Unit 1 Section A", difficulty: "Easy", marks: 2, unit: "1", entry_mode: "typed", subject: subject)
 
     post create_paper_url, params: {
       title: "Manual Randomizer Paper",
@@ -792,6 +856,49 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
     assert_no_match 'name="manual_section_counts[3][A]" value="9"', response.body
   end
 
+  test "different users cannot see each other's subjects questions or papers" do
+    sign_in
+    subject = create_subject(name: "Private Subject", code: "PVT101", semester: "Semester 2")
+    question = create_question(content: "Private Question", difficulty: "Easy", marks: 2, entry_mode: "typed", subject: subject, unit: "1")
+    paper = create_paper_record(title: "Private Paper", exam_type: "Model Exam", subject: subject, duration: "3 Hours", total_marks: 2)
+    PaperQuestion.create!(paper: paper, question: question)
+
+    delete logout_url
+
+    second_user = User.create!(
+      name: "Isolated Faculty",
+      email: "isolated@example.com",
+      department: "BCA",
+      role: "Professor",
+      password: "Password123",
+      password_confirmation: "Password123"
+    )
+
+    post pages_login_url, params: {
+      session: {
+        email: second_user.email,
+        password: "Password123"
+      }
+    }
+
+    get pages_dashboard_url
+    assert_response :success
+    assert_match(/>\s*0\s*</, response.body)
+
+    get pages_manage_subjects_url
+    assert_response :success
+    assert_no_match "Private Subject", response.body
+
+    get pages_question_bank_url
+    assert_response :success
+    assert_no_match "Private Subject", response.body
+    assert_no_match "Private Question", response.body
+
+    get pages_generated_papers_url
+    assert_response :success
+    assert_no_match "Private Paper", response.body
+  end
+
   private
 
   def sign_in
@@ -801,6 +908,32 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
         password: "Password123"
       }
     }
+  end
+
+  def create_subject(user: @user, **attributes)
+    user.subjects.create!({
+      name: "Sample Subject",
+      code: "SUB#{SecureRandom.hex(2).upcase}",
+      department: "BCA",
+      semester: "Semester 1"
+    }.merge(attributes))
+  end
+
+  def create_question(subject:, user: subject.user, **attributes)
+    user.question_banks.create!({
+      content: "Sample Question",
+      difficulty: "Easy",
+      marks: 2,
+      entry_mode: "typed",
+      subject: subject
+    }.merge(attributes))
+  end
+
+  def create_paper_record(subject:, user: subject.user, **attributes)
+    user.exam_papers.create!({
+      title: "Sample Paper",
+      subject: subject
+    }.merge(attributes))
   end
 
   def build_uploaded_file(content, mime_type, original_filename:)

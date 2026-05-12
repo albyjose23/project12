@@ -1,8 +1,9 @@
 class SessionsController < ApplicationController
   def create
-    user = User.find_by(email: params.dig(:session, :email).to_s.strip.downcase)
+    user = User.find_by_email_for_authentication(params.dig(:session, :email))
 
     if user&.authenticate(params.dig(:session, :password))
+      reset_session
       session[:user_id] = user.id
       redirect_to pages_dashboard_path, notice: "Logged in successfully."
     else

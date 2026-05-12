@@ -75,8 +75,8 @@
               </tr>
             </thead>
             <tbody>
-              <% if Subject.any? %>
-                <% Subject.all.order(code: :asc).each do |s| %>
+              <% if @subjects.any? %>
+                <% @subjects.each do |s| %>
                   <tr>
                     <td class="strong"><%= s.code %></td>
                     <td><%= s.name %></td>

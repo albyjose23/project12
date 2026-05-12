@@ -1,0 +1,70 @@
+<% content_for :title, "Reset Password | QPaper" %>
+<% content_for :body_class, "auth-body" %>
+
+<section class="auth-shell">
+  <div class="hero-panel">
+    <div class="stack">
+      <div class="eyebrow">Secure update</div>
+      <h1 class="hero-title">Create a new password and restore access.</h1>
+      <p class="hero-copy">Choose a strong password for your faculty account. This reset link can only be used while the token remains valid.</p>
+      <div class="chip-row">
+        <span class="chip">Verified reset token</span>
+        <span class="chip">Instant invalidation</span>
+        <span class="chip">bcrypt protected</span>
+      </div>
+    </div>
+
+    <div class="hero-metrics">
+      <div class="metric">
+        <strong>SHA-256</strong>
+        <span class="muted">Digest storage</span>
+      </div>
+      <div class="metric">
+        <strong>bcrypt</strong>
+        <span class="muted">Password hashing</span>
+      </div>
+      <div class="metric">
+        <strong>1x</strong>
+        <span class="muted">Single-use link</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="auth-panel">
+    <div class="brand-lockup">
+      <div class="brand-mark">Q</div>
+      <div class="brand-copy">
+        <h1>QPaper Suite</h1>
+        <p>Set a new password</p>
+      </div>
+    </div>
+
+    <div class="stack">
+      <div class="stack">
+        <h2 class="section-title">Reset your password</h2>
+        <p class="subtle-text auth-card-copy">Use a password you haven’t used elsewhere. The reset token is invalidated immediately after a successful update.</p>
+      </div>
+
+      <% if @user.errors.any? %>
+        <p class="auth-note"><%= @user.errors.full_messages.to_sentence %></p>
+      <% end %>
+
+      <%= form_with url: password_reset_path(token: @token), scope: :user, method: :patch, class: "stack" do |form| %>
+        <div class="field">
+          <label for="reset_password">New Password</label>
+          <%= form.password_field :password, id: "reset_password", placeholder: "Create a strong password", required: true, minlength: User::MINIMUM_PASSWORD_LENGTH, autofocus: true, autocomplete: "new-password" %>
+        </div>
+
+        <div class="field">
+          <label for="reset_password_confirmation">Confirm Password</label>
+          <%= form.password_field :password_confirmation, id: "reset_password_confirmation", placeholder: "Repeat the new password", required: true, minlength: User::MINIMUM_PASSWORD_LENGTH, autocomplete: "new-password" %>
+        </div>
+
+        <div class="btn-row auth-btn-row">
+          <%= form.submit "Update Password", class: "btn auth-submit-btn interactive" %>
+          <%= link_to "Back to Login", pages_login_path, class: "btn-ghost auth-secondary-btn interactive" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</section>

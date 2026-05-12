@@ -1,0 +1,13 @@
+one:
+  name: Fixture One
+  email: fixture-one@example.com
+  department: BCA
+  role: Professor
+  password_digest: <%= BCrypt::Password.create("Password123") %>
+
+two:
+  name: Fixture Two
+  email: fixture-two@example.com
+  department: BCA
+  role: Professor
+  password_digest: <%= BCrypt::Password.create("Password123") %>

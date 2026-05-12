@@ -11,6 +11,7 @@ class Question < ApplicationRecord
   }.freeze
 
   belongs_to :subject
+  belongs_to :user, inverse_of: :question_banks
   has_many :paper_questions, dependent: :destroy
   has_many :papers, through: :paper_questions
 
@@ -20,9 +21,11 @@ class Question < ApplicationRecord
 
   before_validation :normalize_section_fields
   before_validation :normalize_entry_mode
+  before_validation :assign_user_from_subject
 
   validates :content, :difficulty, :marks, :entry_mode, presence: true
   validates :entry_mode, inclusion: { in: ENTRY_MODES.keys }
+  validate :subject_owner_matches_user
 
   def self.section_options
     SECTION_RULES.map do |section, attributes|
@@ -117,6 +120,16 @@ class Question < ApplicationRecord
   def normalize_entry_mode
     normalized_mode = entry_mode.to_s.strip.downcase
     self.entry_mode = ENTRY_MODES.key?(normalized_mode) ? normalized_mode : "typed"
+  end
+
+  def assign_user_from_subject
+    self.user ||= subject&.user
+  end
+
+  def subject_owner_matches_user
+    return if subject.blank? || user.blank? || subject.user_id == user_id
+
+    errors.add(:subject, "must belong to the same user")
   end
 
   def self.integer_or_nil(value)

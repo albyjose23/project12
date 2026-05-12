@@ -68,11 +68,11 @@
       <div class="field-grid">
         <div class="field">
           <label for="register_password">Password</label>
-          <%= form.password_field :password, id: "register_password", placeholder: "Create a secure password", required: true %>
+          <%= form.password_field :password, id: "register_password", placeholder: "Create a secure password", required: true, minlength: User::MINIMUM_PASSWORD_LENGTH, autocomplete: "new-password" %>
         </div>
         <div class="field">
           <label for="register_confirm">Confirm Password</label>
-          <%= form.password_field :password_confirmation, id: "register_confirm", placeholder: "Repeat password", required: true %>
+          <%= form.password_field :password_confirmation, id: "register_confirm", placeholder: "Repeat password", required: true, minlength: User::MINIMUM_PASSWORD_LENGTH, autocomplete: "new-password" %>
         </div>
       </div>
 

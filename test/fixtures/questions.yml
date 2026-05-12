@@ -4,8 +4,10 @@ one:
   content: MyText
   difficulty: MyString
   subject: one
+  user: one
 
 two:
-  content: MyText
-  difficulty: MyString
+  content: MyOtherText
+  difficulty: MyOtherString
   subject: two
+  user: two

@@ -1,0 +1,63 @@
+<% content_for :title, "Forgot Password | QPaper" %>
+<% content_for :body_class, "auth-body" %>
+
+<section class="auth-shell">
+  <div class="hero-panel">
+    <div class="stack">
+      <div class="eyebrow">Account recovery</div>
+      <h1 class="hero-title">Reset access without support delays.</h1>
+      <p class="hero-copy">Enter your registered faculty email and QPaper will send a secure password reset link with a short expiry window.</p>
+      <div class="chip-row">
+        <span class="chip">One-time secure token</span>
+        <span class="chip">30 minute expiry</span>
+        <span class="chip">No account exposure</span>
+      </div>
+    </div>
+
+    <div class="hero-metrics">
+      <div class="metric">
+        <strong>1</strong>
+        <span class="muted">Recovery email</span>
+      </div>
+      <div class="metric">
+        <strong>30m</strong>
+        <span class="muted">Token validity</span>
+      </div>
+      <div class="metric">
+        <strong>0</strong>
+        <span class="muted">Manual admin steps</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="auth-panel">
+    <div class="brand-lockup">
+      <div class="brand-mark">Q</div>
+      <div class="brand-copy">
+        <h1>QPaper Suite</h1>
+        <p>Password reset</p>
+      </div>
+    </div>
+
+    <div class="stack">
+      <div class="stack">
+        <h2 class="section-title">Forgot your password?</h2>
+        <p class="subtle-text auth-card-copy">Enter the email address linked to your account. If it exists, we’ll email a secure reset link.</p>
+      </div>
+
+      <%= form_with url: password_resets_path, scope: :password_reset, class: "stack" do |form| %>
+        <div class="field">
+          <label for="password_reset_email">Registered Email</label>
+          <%= form.email_field :email, id: "password_reset_email", placeholder: "faculty@college.edu", required: true, autofocus: true, autocomplete: "email" %>
+        </div>
+
+        <div class="btn-row auth-btn-row">
+          <%= form.submit "Send Reset Link", class: "btn auth-submit-btn interactive" %>
+          <%= link_to "Back to Login", pages_login_path, class: "btn-ghost auth-secondary-btn interactive" %>
+        </div>
+      <% end %>
+
+      <p class="auth-note">For security, the same confirmation message is shown whether or not the email exists.</p>
+    </div>
+  </div>
+</section>

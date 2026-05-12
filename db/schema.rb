@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_03_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_12_190000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -32,7 +32,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_03_090000) do
     t.string "title"
     t.integer "total_marks"
     t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
     t.index ["subject_id"], name: "index_papers_on_subject_id"
+    t.index ["user_id"], name: "index_papers_on_user_id"
   end
 
   create_table "questions", force: :cascade do |t|
@@ -46,9 +48,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_03_090000) do
     t.bigint "subject_id", null: false
     t.string "unit"
     t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
     t.index ["entry_mode"], name: "index_questions_on_entry_mode"
     t.index ["import_batch_id"], name: "index_questions_on_import_batch_id"
     t.index ["subject_id"], name: "index_questions_on_subject_id"
+    t.index ["user_id"], name: "index_questions_on_user_id"
   end
 
   create_table "subjects", force: :cascade do |t|
@@ -58,6 +62,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_03_090000) do
     t.string "name"
     t.string "semester"
     t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id"], name: "index_subjects_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -66,13 +72,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_03_090000) do
     t.string "email", null: false
     t.string "name"
     t.string "password_digest"
+    t.datetime "reset_password_sent_at"
+    t.string "reset_password_token"
     t.string "role"
     t.datetime "updated_at", null: false
-    t.index ["email"], name: "index_users_on_email", unique: true
+    t.index "lower((email)::text)", name: "index_users_on_lower_email", unique: true
+    t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
   add_foreign_key "paper_questions", "papers"
   add_foreign_key "paper_questions", "questions"
   add_foreign_key "papers", "subjects"
+  add_foreign_key "papers", "users"
   add_foreign_key "questions", "subjects"
+  add_foreign_key "questions", "users"
+  add_foreign_key "subjects", "users"
 end

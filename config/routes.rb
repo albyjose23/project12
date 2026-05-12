@@ -4,6 +4,10 @@ Rails.application.routes.draw do
   post "pages/register", to: "users#create"
   get "pages/login"
   post "pages/login", to: "sessions#create"
+  get "password/forgot", to: "password_resets#new", as: :new_password_reset
+  post "password/forgot", to: "password_resets#create", as: :password_resets
+  get "password/reset", to: "password_resets#edit", as: :edit_password_reset
+  patch "password/reset", to: "password_resets#update", as: :password_reset
   root "pages#login"
   delete "logout", to: "sessions#destroy", as: :logout
   

@@ -3,6 +3,22 @@ require_relative "boot"
 require "rails/all"
 require "tmpdir"
 
+begin
+  require "dotenv"
+
+  app_root = File.expand_path("..", __dir__)
+  dotenv_files = [
+    ".env.#{ENV.fetch("RAILS_ENV", "development")}.local",
+    (".env.local" unless ENV.fetch("RAILS_ENV", "development") == "test"),
+    ".env.#{ENV.fetch("RAILS_ENV", "development")}",
+    ".env"
+  ].compact.map { |file| File.join(app_root, file) }
+
+  Dotenv.load(*dotenv_files)
+rescue LoadError
+  warn "dotenv gem is unavailable; skipping .env loading"
+end
+
 # Require the gems listed in Gemfile, including any gems
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)

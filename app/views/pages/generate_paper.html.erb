@@ -46,7 +46,7 @@
               <label for="paper_subject">Target Subject</label>
               <select id="paper_subject" name="subject_id" class="ui-select" required>
                 <option value="">Select Subject</option>
-                <% Subject.all.each do |s| %>
+                <% @subjects.each do |s| %>
                   <option value="<%= s.id %>" <%= "selected" if form_state["subject_id"].to_s == s.id.to_s %>><%= s.name %> (<%= s.code %>)</option>
                 <% end %>
               </select>

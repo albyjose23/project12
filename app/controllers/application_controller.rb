@@ -20,6 +20,7 @@ class ApplicationController < ActionController::Base
   def authenticate_user!
     return if user_signed_in?
 
+    reset_session if session[:user_id].present?
     redirect_to pages_login_path, alert: "Please log in with a registered account."
   end
 

@@ -15,22 +15,19 @@
       <div class="stats-grid">
         <article class="stat-card">
           <span class="eyebrow">Subjects</span>
-          <%# Dynamic Count for Subjects %>
-          <p class="kpi-value"><%= Subject.count %></p>
+          <p class="kpi-value"><%= @total_subjects %></p>
           <p class="kpi-meta">Across core and elective groups.</p>
         </article>
 
         <article class="stat-card">
           <span class="eyebrow">Questions</span>
-          <%# Dynamic Count for Questions %>
-          <p class="kpi-value"><%= Question.count %></p>
+          <p class="kpi-value"><%= @total_questions %></p>
           <p class="kpi-meta">Balanced across units and difficulty.</p>
         </article>
 
         <article class="stat-card">
           <span class="eyebrow">Generated</span>
-          <%# Dynamic Count for Papers %>
-          <p class="kpi-value"><%= Paper.count %></p>
+          <p class="kpi-value"><%= @total_papers %></p>
           <p class="kpi-meta">Ready for review and print.</p>
         </article>
       </div>
@@ -49,10 +46,9 @@
             <div class="quick-item">
               <div>
                 <div class="strong">Recent Papers</div>
-                <%# Shows the title of the very last paper you made %>
                 <div class="muted">
-                  <% if Paper.any? %>
-                    Last: <%= Paper.last.title %>
+                  <% if @recent_papers.any? %>
+                    Last: <%= @recent_papers.first.title %>
                   <% else %>
                     No papers generated yet
                   <% end %>

@@ -11,40 +11,47 @@ class PagesController < ApplicationController
   def register; end
 
   def dashboard
-    @total_papers = Paper.count
-    @total_questions = Question.count
-    @total_subjects = Subject.count
-    @recent_papers = Paper.includes(:subject).order(created_at: :desc).limit(5)
+    @total_papers = current_user.exam_papers.count
+    @total_questions = current_user.question_banks.count
+    @total_subjects = current_user.subjects.count
+    @recent_papers = current_user.exam_papers.includes(:subject).order(created_at: :desc).limit(5)
   end
 
   def question_bank
-    @subjects = Subject.order(name: :asc)
-    @typed_questions = Question.typed_entries.includes(:subject).order(created_at: :desc)
+    @subjects = current_user.subjects.order(name: :asc)
+    @typed_questions = current_user.question_banks.typed_entries.includes(:subject).order(created_at: :desc)
     @imported_batches = grouped_import_batches
   end
 
   def manage_subjects
-    @subjects = Subject.all.order(code: :asc)
+    @subjects = current_user.subjects.order(code: :asc)
   end
 
   def add_subject
-    @subject = Subject.new(name: params[:name], code: params[:code])
+    @subject = current_user.subjects.new(
+      name: params[:name],
+      code: params[:code],
+      department: params[:department],
+      semester: params[:semester]
+    )
+
     if @subject.save
       redirect_to pages_manage_subjects_path, notice: "Subject created!"
     else
-      redirect_to pages_manage_subjects_path, alert: "Failed to create subject."
+      redirect_to pages_manage_subjects_path, alert: @subject.errors.full_messages.to_sentence
     end
   end
 
   def add_question
+    subject = current_user.subjects.find(params[:subject_id])
     section = Question.resolve_section(marks: params[:marks], difficulty: params[:difficulty])
     attributes = Question.attributes_for_section(section)
 
-    @question = Question.new(
+    @question = current_user.question_banks.new(
       content: params[:content],
       difficulty: attributes[:difficulty] || params[:difficulty],
       marks: attributes[:marks] || params[:marks],
-      subject_id: params[:subject_id],
+      subject: subject,
       unit: params[:unit],
       entry_mode: "typed"
     )
@@ -57,17 +64,17 @@ class PagesController < ApplicationController
   end
 
   def import_questions_page
-    @subjects = Subject.order(name: :asc)
+    @subjects = current_user.subjects.order(name: :asc)
   end
 
   def delete_paper
-    @paper = Paper.find(params[:id])
+    @paper = current_user.exam_papers.find(params[:id])
     @paper.destroy
     redirect_to pages_generated_papers_path, notice: "Paper deleted successfully."
   end
 
   def create_paper
-    @subject = Subject.find(params[:subject_id])
+    @subject = current_user.subjects.find(params[:subject_id])
     selected_units = requested_units
     generator_mode = requested_generator_mode
     available_questions = filtered_questions_for_paper(@subject, selected_units)
@@ -133,7 +140,7 @@ class PagesController < ApplicationController
       return
     end
 
-    @paper = Paper.new(
+    @paper = current_user.exam_papers.new(
       title: params[:title],
       exam_type: params[:exam_type],
       subject: @subject,
@@ -159,7 +166,7 @@ class PagesController < ApplicationController
 
   def import_questions
     file = params[:file]
-    subject = Subject.find(params[:subject_id])
+    subject = current_user.subjects.find(params[:subject_id])
 
     if file.present?
       begin
@@ -187,12 +194,12 @@ class PagesController < ApplicationController
   end
 
   def edit_subject
-    @subject = Subject.find(params[:id])
+    @subject = current_user.subjects.find(params[:id])
   end
 
   def update_subject
-    @subject = Subject.find(params[:id])
-    if @subject.update(name: params[:name], code: params[:code])
+    @subject = current_user.subjects.find(params[:id])
+    if @subject.update(name: params[:name], code: params[:code], department: params[:department], semester: params[:semester])
       redirect_to pages_manage_subjects_path, notice: "Subject updated successfully!"
     else
       render :edit_subject, alert: "Failed to update subject."
@@ -200,12 +207,13 @@ class PagesController < ApplicationController
   end
 
   def edit_question
-    @question = Question.find(params[:id])
-    @subjects = Subject.order(name: :asc)
+    @question = current_user.question_banks.find(params[:id])
+    @subjects = current_user.subjects.order(name: :asc)
   end
 
   def update_question
-    @question = Question.find(params[:id])
+    @question = current_user.question_banks.find(params[:id])
+    subject = current_user.subjects.find(params[:subject_id])
     section = Question.resolve_section(marks: params[:marks], difficulty: params[:difficulty])
     attributes = Question.attributes_for_section(section)
 
@@ -214,7 +222,7 @@ class PagesController < ApplicationController
       marks: attributes[:marks] || params[:marks],
       difficulty: attributes[:difficulty] || params[:difficulty],
       unit: params[:unit],
-      subject_id: params[:subject_id]
+      subject: subject
     )
       redirect_to pages_question_bank_path, notice: "Question updated successfully!"
     else
@@ -223,7 +231,7 @@ class PagesController < ApplicationController
   end
 
   def delete_question
-    @question = Question.find(params[:id])
+    @question = current_user.question_banks.find(params[:id])
     @question.destroy
     redirect_to pages_question_bank_path, notice: "Question deleted successfully."
   end
@@ -243,14 +251,15 @@ class PagesController < ApplicationController
   def generate_paper
     @form_state = default_generate_paper_form.merge(flash[:generate_paper_form] || {})
     @selected_units = Array(@form_state["units"]).map(&:to_s)
+    @subjects = current_user.subjects.order(name: :asc)
   end
 
   def generated_papers
-    @papers = Paper.includes(:subject).order(created_at: :desc)
+    @papers = current_user.exam_papers.includes(:subject).order(created_at: :desc)
   end
 
   def view_paper
-    @paper = Paper.find(params[:id])
+    @paper = current_user.exam_papers.find(params[:id])
     questions = @paper.questions.to_a
     @section_a_questions = questions.select { |question| question.section_name == "A" }
     @section_b_questions = questions.select { |question| question.section_name == "B" }
@@ -428,7 +437,7 @@ class PagesController < ApplicationController
   end
 
   def filtered_questions_for_paper(subject, selected_units)
-    questions = subject.questions.to_a
+    questions = subject.questions.where(user: current_user).to_a
     return questions if selected_units.empty?
 
     questions.select do |question|
@@ -490,7 +499,7 @@ class PagesController < ApplicationController
   end
 
   def grouped_import_batches
-    Question.imported_entries
+    current_user.question_banks.imported_entries
       .includes(:subject)
       .order(created_at: :desc)
       .group_by { |question| import_group_key_for(question) }
@@ -518,7 +527,7 @@ class PagesController < ApplicationController
     )
     resolved_attributes = Question.attributes_for_section(section)
 
-    Question.create!(
+    current_user.question_banks.create!(
       content: row["content"].presence || row["text"].presence,
       difficulty: resolved_attributes[:difficulty] || section_attributes[:difficulty] || row["difficulty"],
       marks: resolved_attributes[:marks] || section_attributes[:marks] || row["marks"],
@@ -545,16 +554,16 @@ class PagesController < ApplicationController
   end
 
   def imported_questions_for_group(group_key)
-    return Question.none if group_key.blank?
+    return current_user.question_banks.none if group_key.blank?
 
     if group_key.start_with?("batch:")
-      Question.for_import_batch(group_key.delete_prefix("batch:"))
+      current_user.question_banks.for_import_batch(group_key.delete_prefix("batch:"))
     elsif group_key.start_with?("source:")
-      Question.imported_entries.where(import_batch_id: nil, import_source_name: group_key.delete_prefix("source:"))
+      current_user.question_banks.imported_entries.where(import_batch_id: nil, import_source_name: group_key.delete_prefix("source:"))
     elsif group_key.start_with?("legacy:")
-      Question.imported_entries.where(id: group_key.delete_prefix("legacy:"))
+      current_user.question_banks.imported_entries.where(id: group_key.delete_prefix("legacy:"))
     else
-      Question.none
+      current_user.question_banks.none
     end
   end
 end
