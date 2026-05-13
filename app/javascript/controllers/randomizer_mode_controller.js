@@ -42,9 +42,11 @@ export default class extends Controller {
   }
 
   handleWheel(event) {
-    if (event.target.matches('input[type="number"]')) {
+    const numberInput = event.target.closest('input[type="number"]')
+
+    if (numberInput && document.activeElement === numberInput) {
       event.preventDefault()
-      event.target.blur()
+      numberInput.blur()
     }
   }
 

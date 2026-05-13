@@ -856,6 +856,35 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
     assert_no_match 'name="manual_section_counts[3][A]" value="9"', response.body
   end
 
+  test "manual randomizer form state flash is not rendered as a banner" do
+    sign_in
+    subject = create_subject(name: "Operating Systems", code: "BCA507", department: "BCA", semester: "Semester 5")
+    create_question(content: "Unit 4 Section A", difficulty: "Easy", marks: 2, unit: "4", entry_mode: "typed", subject: subject)
+
+    post create_paper_url, params: {
+      title: "Mid-Term Examination 2026",
+      exam_type: "First Internal",
+      subject_id: subject.id,
+      duration: "3 Hours",
+      total_marks: 44,
+      generator_mode: "manual",
+      unit_filter_present: "1",
+      units: [ "4", "5" ],
+      manual_section_counts: {
+        "4" => { "A" => 3, "B" => 2, "C" => 1 },
+        "5" => { "A" => 2, "B" => 1, "C" => 1 }
+      }
+    }
+
+    assert_redirected_to pages_generate_paper_url
+
+    follow_redirect!
+    assert_response :success
+    assert_match "Only 1 question(s) available for Unit 4 Section A", response.body
+    assert_no_match(/"generator_mode"\s*=>\s*"manual"/, response.body)
+    assert_no_match(/"manual_section_counts"\s*=>/, response.body)
+  end
+
   test "different users cannot see each other's subjects questions or papers" do
     sign_in
     subject = create_subject(name: "Private Subject", code: "PVT101", semester: "Semester 2")

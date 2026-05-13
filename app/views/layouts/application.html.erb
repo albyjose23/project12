@@ -25,6 +25,7 @@
 
   <body class="<%= content_for?(:body_class) ? yield(:body_class) : "app-body" %>">
     <% flash.each do |type, message| %>
+      <% next unless %w[notice alert].include?(type.to_s) %>
       <div class="flash-banner <%= type %>"><%= message %></div>
     <% end %>
     <%= yield %>
